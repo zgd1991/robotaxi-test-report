@@ -82,14 +82,25 @@ export function parseExcel(file: File): Promise<TestRecord[]> {
       try {
         const data = e.target?.result as ArrayBuffer;
         const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' });
 
-        const complexRecords = parseComplexExcelFormat(workbook);
+        if (rows.length > 0) {
+          const firstRow = rows[0];
+          const firstCell = String(firstRow?.[0] || '');
+          const secondCell = String(firstRow?.[1] || '');
+          if (firstCell === '车辆vin' || secondCell === '站点名称') {
+            resolve(parseNewExcelFormat(rows));
+            return;
+          }
+        }
+
+        const complexRecords = parseComplexExcelFormat(rows);
         if (complexRecords.length > 0) {
           resolve(complexRecords);
           return;
         }
 
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
         const records = normalizeRecords(json);
         resolve(records);
@@ -102,10 +113,7 @@ export function parseExcel(file: File): Promise<TestRecord[]> {
   });
 }
 
-function parseComplexExcelFormat(workbook: XLSX.WorkBook): TestRecord[] {
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' });
-
+function parseComplexExcelFormat(rows: unknown[][]): TestRecord[] {
   if (rows.length < 3) return [];
 
   const firstRow = rows[0];
@@ -199,6 +207,113 @@ function parseComplexExcelFormat(workbook: XLSX.WorkBook): TestRecord[] {
   return records;
 }
 
+export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
+  const records: TestRecord[] = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length < 12) continue;
+
+    const stationName = String(row[2] || '').trim();
+    if (!stationName) continue;
+
+    const sessionId = `new-${i}`;
+    const vin = String(row[0] || '').trim();
+    const adVersion = String(row[1] || '').trim();
+    const version = adVersion || 'unknown';
+    const testDate = normalizeDateValue(row[5]);
+    const stationConclusion = normalizeStationConclusion(String(row[4] || ''));
+    const singleResult = String(row[3] || '').trim() || undefined;
+
+    const entryResult = normalizeTagResult(String(row[10] || ''), '进站');
+    const parkingResult = normalizeTagResult(String(row[11] || ''), '停泊');
+    const departureResult = normalizeTagResult(String(row[12] || ''), '出站');
+
+    const entryDesc = String(row[6] || '').trim();
+    const departureDesc = String(row[7] || '').trim();
+    const entryTag = String(row[10] || '').trim();
+    const parkingTag = String(row[11] || '').trim();
+    const departureTag = String(row[12] || '').trim();
+
+    const issueDescription = entryDesc || departureDesc || entryTag || parkingTag || departureTag || undefined;
+
+    const hasDirectionResult = entryResult || parkingResult || departureResult;
+
+    if (hasDirectionResult) {
+      if (entryResult) {
+        const issueCategory = extractTagCategory(entryTag) || entryDesc || undefined;
+        records.push(
+          createRecord(sessionId, stationName, version, '进站', entryResult, issueCategory || '', issueDescription || '', {
+            stationConclusion,
+            vin,
+            adVersion,
+            testDate,
+            singleResult,
+          })
+        );
+      }
+
+      if (parkingResult) {
+        const issueCategory = extractTagCategory(parkingTag) || entryDesc || undefined;
+        records.push(
+          createRecord(sessionId, stationName, version, '停泊', parkingResult, issueCategory || '', issueDescription || '', {
+            stationConclusion,
+            vin,
+            adVersion,
+            testDate,
+            singleResult,
+          })
+        );
+      }
+
+      if (departureResult) {
+        const issueCategory = extractTagCategory(entryTag) || extractTagCategory(parkingTag) || departureDesc || entryDesc || undefined;
+        records.push(
+          createRecord(sessionId, stationName, version, '出站', departureResult, issueCategory || '', issueDescription || '', {
+            stationConclusion,
+            vin,
+            adVersion,
+            testDate,
+            singleResult,
+          })
+        );
+      }
+    } else if (singleResult) {
+      const overallResult: ResultType = singleResult.trim().toLowerCase() === 'ok' ? '通过' : '失败';
+      const issueCategory = extractTagCategory(entryTag) || extractTagCategory(parkingTag) || entryDesc || departureDesc || undefined;
+      records.push(
+        createRecord(sessionId, stationName, version, '完整站点测试', overallResult, issueCategory || '', issueDescription || '', {
+          stationConclusion,
+          vin,
+          adVersion,
+          testDate,
+          singleResult,
+        })
+      );
+    }
+  }
+
+  return records;
+}
+
+function normalizeTagResult(value: string, type: '进站' | '停泊' | '出站'): ResultType | null {
+  const prefix = type === '进站' ? '进站成功' : type === '停泊' ? '停泊成功' : '出站成功';
+  const failPrefix = type === '进站' ? '进站失败' : type === '停泊' ? '停泊失败' : '出站失败';
+  const trimmed = value.trim();
+  if (trimmed.startsWith(prefix)) return '通过';
+  if (trimmed.startsWith(failPrefix)) return '失败';
+  return null;
+}
+
+function extractTagCategory(tag: string): string | undefined {
+  const trimmed = tag.trim();
+  if (!trimmed.includes('/')) return undefined;
+  const parts = trimmed.split('/');
+  if (parts.length < 2) return undefined;
+  const category = parts[1].trim();
+  return category || undefined;
+}
+
 interface RecordExtras {
   stationConclusion?: StationConclusion;
   vin?: string;
@@ -252,9 +367,9 @@ function normalizeComplexResult(value: string): ResultType | null {
 
 function normalizeStationConclusion(value: string): StationConclusion | undefined {
   const normalized = value.trim();
-  if (normalized === '通过' || normalized === '不通过' || normalized === '站点不合理') {
-    return normalized;
-  }
+  if (normalized === '通过') return '通过';
+  if (normalized === '不通过' || normalized === '未通过') return '不通过';
+  if (normalized === '站点不合理' || normalized === '不合理') return '站点不合理';
   return undefined;
 }
 
@@ -273,7 +388,9 @@ function normalizeDateValue(value: unknown): string {
       return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
     }
   }
-  return String(value).trim();
+  const str = String(value).trim();
+  if (str.includes(' ')) return str.split(' ')[0];
+  return str;
 }
 
 export function parseJSON(file: File): Promise<TestRecord[]> {

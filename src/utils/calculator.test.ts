@@ -85,4 +85,24 @@ describe('calculateReport', () => {
     expect(report.metadata.adVersion).toBe('v1.0.0');
     expect(report.metadata.totalSessions).toBe(6);
   });
+
+  it('uses priority for station conclusions across sessions', () => {
+    const mixedRecords: TestRecord[] = [
+      { sessionId: 'S-1', stationId: 'S', stationName: '站点 S', version: 'v1.0.0', testType: '进站', result: '通过', stationConclusion: '通过' },
+      { sessionId: 'S-1', stationId: 'S', stationName: '站点 S', version: 'v1.0.0', testType: '停泊', result: '通过', stationConclusion: '通过' },
+      { sessionId: 'S-2', stationId: 'S', stationName: '站点 S', version: 'v1.0.0', testType: '进站', result: '失败', issueCategory: '定位异常', stationConclusion: '不通过' },
+      { sessionId: 'S-2', stationId: 'S', stationName: '站点 S', version: 'v1.0.0', testType: '停泊', result: '失败', issueCategory: '定位异常', stationConclusion: '不通过' },
+      { sessionId: 'T-1', stationId: 'T', stationName: '站点 T', version: 'v1.0.0', testType: '进站', result: '失败', issueCategory: '站点不合理', stationConclusion: '站点不合理' },
+      { sessionId: 'T-1', stationId: 'T', stationName: '站点 T', version: 'v1.0.0', testType: '停泊', result: '失败', issueCategory: '站点不合理', stationConclusion: '站点不合理' },
+      { sessionId: 'T-2', stationId: 'T', stationName: '站点 T', version: 'v1.0.0', testType: '进站', result: '通过', stationConclusion: '通过' },
+      { sessionId: 'T-2', stationId: 'T', stationName: '站点 T', version: 'v1.0.0', testType: '停泊', result: '通过', stationConclusion: '通过' },
+    ];
+
+    const report = calculateReport(mixedRecords);
+    expect(report.stationConclusionStats.total).toBe(2);
+    expect(report.stationConclusionStats.passed).toBe(0);
+    expect(report.stationConclusionStats.failed).toBe(1);
+    expect(report.stationConclusionStats.unreasonable).toBe(1);
+    expect(report.stationConclusionStats.unfinished).toBe(0);
+  });
 });

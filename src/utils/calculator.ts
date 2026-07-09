@@ -75,9 +75,12 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
 
   for (const sessionRecords of sessions.values()) {
     const stationName = sessionRecords[0]?.stationName || 'unknown';
-    if (!stationConclusions.has(stationName)) {
-      const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
-      stationConclusions.set(stationName, conclusion);
+    const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
+    if (conclusion) {
+      const existing = stationConclusions.get(stationName);
+      stationConclusions.set(stationName, mergeStationConclusion(existing, conclusion));
+    } else if (!stationConclusions.has(stationName)) {
+      stationConclusions.set(stationName, undefined);
     }
   }
 
@@ -101,6 +104,13 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
   const unfinishedRate = allStations > 0 ? parseFloat(((unfinished / allStations) * 100).toFixed(1)) : 0;
 
   return { total, passed, failed, unreasonable, unfinished, passRate, failRate, unreasonableRate, unfinishedRate };
+}
+
+function mergeStationConclusion(a: StationConclusion | undefined, b: StationConclusion): StationConclusion {
+  const priority: Record<StationConclusion, number> = { '站点不合理': 3, '不通过': 2, '通过': 1 };
+  const pa = a ? priority[a] : 0;
+  const pb = priority[b];
+  return pa >= pb ? (a as StationConclusion) : b;
 }
 
 function buildMetadata(records: TestRecord[], sessions: Map<string, TestRecord[]>): ReportMetadata {
