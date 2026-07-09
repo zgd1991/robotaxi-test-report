@@ -34,7 +34,7 @@ export function HomePage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-16">
       <div className="text-center">
-        <h2 className="text-3xl font-semibold tracking-tight text-white">生成测试报告</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-900">生成测试报告</h2>
         <p className="mt-3 text-muted">上传 CSV / Excel / JSON 文件，或粘贴文本数据，自动生成 Robotaxi 无人车站点测试报告。</p>
       </div>
 
@@ -46,7 +46,7 @@ export function HomePage() {
         <button
           type="button"
           onClick={loadSampleData}
-          className="flex items-center gap-2 border border-card px-5 py-2.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent"
+          className="flex items-center gap-2 rounded border border-slate-200 bg-white px-5 py-2.5 text-sm text-muted transition-colors hover:border-accent hover:text-accent"
         >
           <Database size={16} />
           加载示例数据

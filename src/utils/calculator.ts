@@ -1,19 +1,16 @@
-import type { ChangeItem, DirectionStat, ImpactStat, IssueStat, ReportData, TestRecord, TestType, TestTypeStat, VersionChange, VersionStat } from '../types';
+import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, StationConclusion, StationConclusionStats, TestRecord, TestType, VersionChange, VersionStat } from '../types';
 
 export function calculateReport(records: TestRecord[]): ReportData {
   const sessions = groupBySession(records);
   const singleTestStats = buildSingleTestStats(sessions);
-  const stationOverallStats = buildStationOverallStats(sessions);
-  const stationCount = new Set(records.map((r) => r.stationName)).size;
-  const versions = Array.from(new Set(records.map((r) => r.version))).sort();
+  const stationConclusionStats = buildStationConclusionStats(sessions);
+  const metadata = buildMetadata(records, sessions);
 
-  const testTypeStats = buildTestTypeStats(records);
   const entryStats = buildDirectionStats(records, '进站');
   const exitStats = buildDirectionStats(records, '出站');
   const parkingStats = buildDirectionStats(records, '停泊');
 
   const issueStats = buildIssueStats(records);
-  const impactStats = buildImpactStats(records);
   const topIssues = [...issueStats].sort((a, b) => b.count - a.count).slice(0, 3);
 
   const versionStats = buildVersionStats(records);
@@ -25,15 +22,13 @@ export function calculateReport(records: TestRecord[]): ReportData {
     failedTests: singleTestStats.failed,
     overallPassRate: singleTestStats.rate,
     singleTestStats,
-    stationOverallStats,
-    stationCount,
-    versions,
-    testTypeStats,
+    completedStations: stationConclusionStats.total,
+    stationConclusionStats,
+    metadata,
     entryStats,
     exitStats,
     parkingStats,
     issueStats,
-    impactStats,
     topIssues,
     versionStats,
     versionChanges,
@@ -55,15 +50,7 @@ function buildSingleTestStats(sessions: Map<string, TestRecord[]>): DirectionSta
   let passed = 0;
 
   for (const sessionRecords of sessions.values()) {
-    if (sessionRecords.length === 1) {
-      if (sessionRecords[0].result === '通过') passed++;
-    } else {
-      const entry = sessionRecords.find((r) => r.testType === '进站');
-      const parking = sessionRecords.find((r) => r.testType === '停泊');
-      if (entry?.result === '通过' && parking?.result === '通过') {
-        passed++;
-      }
-    }
+    if (isSingleTestPassed(sessionRecords)) passed++;
   }
 
   const failed = total - passed;
@@ -72,55 +59,64 @@ function buildSingleTestStats(sessions: Map<string, TestRecord[]>): DirectionSta
   return { total, passed, failed, rate };
 }
 
-function buildStationOverallStats(sessions: Map<string, TestRecord[]>): DirectionStat {
-  const stationSinglePasses = new Map<string, number>();
-  const stationTotalSessions = new Map<string, number>();
+function isSingleTestPassed(sessionRecords: TestRecord[]): boolean {
+  const firstRecord = sessionRecords[0];
+  if (firstRecord?.singleResult && firstRecord.singleResult.trim() !== '') {
+    const normalized = firstRecord.singleResult.trim().toLowerCase();
+    return normalized === 'ok' || normalized === '通过' || normalized === 'pass' || normalized === '成功';
+  }
+  const entry = sessionRecords.find((r) => r.testType === '进站');
+  const parking = sessionRecords.find((r) => r.testType === '停泊');
+  return entry?.result === '通过' && parking?.result === '通过';
+}
+
+function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): StationConclusionStats {
+  const stationConclusions = new Map<string, StationConclusion | undefined>();
 
   for (const sessionRecords of sessions.values()) {
     const stationName = sessionRecords[0]?.stationName || 'unknown';
-    stationTotalSessions.set(stationName, (stationTotalSessions.get(stationName) || 0) + 1);
-
-    let singlePass = false;
-    if (sessionRecords.length === 1) {
-      singlePass = sessionRecords[0].result === '通过';
-    } else {
-      const entry = sessionRecords.find((r) => r.testType === '进站');
-      const parking = sessionRecords.find((r) => r.testType === '停泊');
-      singlePass = entry?.result === '通过' && parking?.result === '通过';
-    }
-
-    if (singlePass) {
-      stationSinglePasses.set(stationName, (stationSinglePasses.get(stationName) || 0) + 1);
+    if (!stationConclusions.has(stationName)) {
+      const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
+      stationConclusions.set(stationName, conclusion);
     }
   }
 
-  const totalStations = stationTotalSessions.size;
-  let passedStations = 0;
+  let passed = 0;
+  let failed = 0;
+  let unreasonable = 0;
+  let unfinished = 0;
 
-  for (const stationName of stationTotalSessions.keys()) {
-    const singlePasses = stationSinglePasses.get(stationName) || 0;
-    if (singlePasses >= 3) {
-      passedStations++;
-    }
+  for (const conclusion of stationConclusions.values()) {
+    if (conclusion === '通过') passed++;
+    else if (conclusion === '不通过') failed++;
+    else if (conclusion === '站点不合理') unreasonable++;
+    else unfinished++;
   }
 
-  const failedStations = totalStations - passedStations;
-  const rate = totalStations > 0 ? parseFloat(((passedStations / totalStations) * 100).toFixed(1)) : 0;
+  const total = passed + failed + unreasonable;
+  const allStations = total + unfinished;
+  const passRate = total > 0 ? parseFloat(((passed / total) * 100).toFixed(1)) : 0;
+  const failRate = total > 0 ? parseFloat(((failed / total) * 100).toFixed(1)) : 0;
+  const unreasonableRate = total > 0 ? parseFloat(((unreasonable / total) * 100).toFixed(1)) : 0;
+  const unfinishedRate = allStations > 0 ? parseFloat(((unfinished / allStations) * 100).toFixed(1)) : 0;
 
-  return { total: totalStations, passed: passedStations, failed: failedStations, rate };
+  return { total, passed, failed, unreasonable, unfinished, passRate, failRate, unreasonableRate, unfinishedRate };
 }
 
-function buildTestTypeStats(records: TestRecord[]): TestTypeStat[] {
-  const types: TestType[] = ['完整站点测试', '进站', '出站', '停泊'];
+function buildMetadata(records: TestRecord[], sessions: Map<string, TestRecord[]>): ReportMetadata {
+  const firstRecord = records[0];
+  const versions = Array.from(new Set(records.map((r) => r.version))).sort();
+  const stationCount = new Set(records.map((r) => r.stationName)).size;
+  const totalSessions = sessions.size;
 
-  return types.map((type) => {
-    const filtered = records.filter((r) => r.testType === type);
-    const total = filtered.length;
-    const passed = filtered.filter((r) => r.result === '通过').length;
-    const failed = total - passed;
-    const rate = total > 0 ? parseFloat(((passed / total) * 100).toFixed(1)) : 0;
-    return { testType: type, total, passed, failed, rate };
-  });
+  return {
+    testDate: firstRecord?.testDate || undefined,
+    vin: firstRecord?.vin || undefined,
+    adVersion: firstRecord?.adVersion || undefined,
+    versions,
+    stationCount,
+    totalSessions,
+  };
 }
 
 function buildDirectionStats(records: TestRecord[], direction: TestType): DirectionStat {
@@ -136,56 +132,17 @@ function buildIssueStats(records: TestRecord[]): IssueStat[] {
   const failedRecords = records.filter((r) => r.result === '失败' && r.issueCategory);
   const totalIssues = failedRecords.length;
   const counts = new Map<string, number>();
-  const impactCounts = new Map<string, Map<string, number>>();
 
   for (const record of failedRecords) {
     const category = record.issueCategory || '未分类';
     counts.set(category, (counts.get(category) || 0) + 1);
-
-    const impact = record.impact || '未分类';
-    if (!impactCounts.has(category)) {
-      impactCounts.set(category, new Map());
-    }
-    const categoryImpacts = impactCounts.get(category)!;
-    categoryImpacts.set(impact, (categoryImpacts.get(impact) || 0) + 1);
   }
 
   return Array.from(counts.entries())
-    .map(([category, count]) => {
-      const categoryImpacts = impactCounts.get(category) || new Map();
-      let mostCommonImpact = '未分类';
-      let maxImpactCount = 0;
-      for (const [impact, impactCount] of categoryImpacts.entries()) {
-        if (impactCount > maxImpactCount) {
-          maxImpactCount = impactCount;
-          mostCommonImpact = impact;
-        }
-      }
-      return {
-        category,
-        impact: mostCommonImpact,
-        count,
-        percentage: totalIssues > 0 ? parseFloat(((count / totalIssues) * 100).toFixed(1)) : 0,
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-}
-
-function buildImpactStats(records: TestRecord[]): ImpactStat[] {
-  const failedRecords = records.filter((r) => r.result === '失败' && r.impact);
-  const total = failedRecords.length;
-  const counts = new Map<string, number>();
-
-  for (const record of failedRecords) {
-    const impact = record.impact || '未分类';
-    counts.set(impact, (counts.get(impact) || 0) + 1);
-  }
-
-  return Array.from(counts.entries())
-    .map(([impact, count]) => ({
-      impact,
+    .map(([category, count]) => ({
+      category,
       count,
-      percentage: total > 0 ? parseFloat(((count / total) * 100).toFixed(1)) : 0,
+      percentage: totalIssues > 0 ? parseFloat(((count / totalIssues) * 100).toFixed(1)) : 0,
     }))
     .sort((a, b) => b.count - a.count);
 }

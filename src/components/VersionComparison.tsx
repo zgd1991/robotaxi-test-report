@@ -8,8 +8,8 @@ interface VersionComparisonProps {
 export function VersionComparison({ data }: VersionComparisonProps) {
   if (data.versionChanges.length === 0) {
     return (
-      <div className="rounded border border-card bg-card/50 p-5">
-        <h3 className="mb-2 text-sm font-medium text-white">版本优化与回退项</h3>
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="mb-2 text-sm font-medium text-slate-900">版本优化与回退项</h3>
         <p className="text-sm text-muted">仅有一个版本数据，无法计算版本间优化/回退项。</p>
       </div>
     );
@@ -26,8 +26,8 @@ export function VersionComparison({ data }: VersionComparisonProps) {
 
 function VersionChangeCard({ change }: { change: VersionChange }) {
   return (
-    <div className="rounded border border-card bg-card/50 p-5">
-      <h3 className="mb-4 text-sm font-medium text-white">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <h3 className="mb-4 text-sm font-medium text-slate-900">
         {change.previousVersion} → {change.version}
       </h3>
 
@@ -39,7 +39,7 @@ function VersionChangeCard({ change }: { change: VersionChange }) {
         {change.improvements.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
             {change.improvements.map((item, index) => (
-              <li key={index} className="text-muted">
+              <li key={index} className="text-slate-600">
                 {item.stationName ? `【${item.stationName}】` : ''}
                 {item.testType} 成功率 {item.previousRate}% → {item.currentRate}%（+{item.change}%）
               </li>
@@ -58,7 +58,7 @@ function VersionChangeCard({ change }: { change: VersionChange }) {
         {change.regressions.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
             {change.regressions.map((item, index) => (
-              <li key={index} className="text-muted">
+              <li key={index} className="text-slate-600">
                 {item.stationName ? `【${item.stationName}】` : ''}
                 {item.testType} 成功率 {item.previousRate}% → {item.currentRate}%（{item.change}%）
               </li>

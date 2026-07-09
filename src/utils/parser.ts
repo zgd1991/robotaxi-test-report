@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import type { TestRecord, TestType, ResultType } from '../types';
+import type { TestRecord, TestType, ResultType, StationConclusion } from '../types';
 
 const FIELD_MAP: Record<string, keyof TestRecord> = {
   'stationId': 'stationId',
@@ -8,6 +8,7 @@ const FIELD_MAP: Record<string, keyof TestRecord> = {
   '站点id': 'stationId',
   'stationName': 'stationName',
   '站点名称': 'stationName',
+  '站点信息': 'stationName',
   'version': 'version',
   '版本号': 'version',
   '版本': 'version',
@@ -18,12 +19,25 @@ const FIELD_MAP: Record<string, keyof TestRecord> = {
   '是否通过': 'result',
   'issueCategory': 'issueCategory',
   '问题类别': 'issueCategory',
+  '问题分类': 'issueCategory',
   'issueDescription': 'issueDescription',
   '问题描述': 'issueDescription',
   'impact': 'impact',
   '影响方向': 'impact',
   'testTime': 'testTime',
   '测试时间': 'testTime',
+  'stationConclusion': 'stationConclusion',
+  '站点结论': 'stationConclusion',
+  '每个站点测试结果': 'stationConclusion',
+  'vin': 'vin',
+  'VIN': 'vin',
+  'adVersion': 'adVersion',
+  '智驾版本': 'adVersion',
+  'testDate': 'testDate',
+  '日期': 'testDate',
+  '测试日期': 'testDate',
+  'singleResult': 'singleResult',
+  '单次测试结果': 'singleResult',
 };
 
 const TEST_TYPES: TestType[] = ['进站', '出站', '完整站点测试', '停泊'];
@@ -68,17 +82,17 @@ export function parseExcel(file: File): Promise<TestRecord[]> {
       try {
         const data = e.target?.result as ArrayBuffer;
         const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
-        const records = normalizeRecords(json);
-        if (records.length > 0) {
-          resolve(records);
+        const complexRecords = parseComplexExcelFormat(workbook);
+        if (complexRecords.length > 0) {
+          resolve(complexRecords);
           return;
         }
 
-        const complexRecords = parseComplexExcelFormat(workbook);
-        resolve(complexRecords);
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+        const records = normalizeRecords(json);
+        resolve(records);
       } catch (err) {
         reject(err);
       }
@@ -98,9 +112,14 @@ function parseComplexExcelFormat(workbook: XLSX.WorkBook): TestRecord[] {
   if (!firstRow || String(firstRow[1] || '') !== '站点信息') return [];
 
   const records: TestRecord[] = [];
+  let stationIndex = 0;
+  let rowOffset = -1;
+
   let currentStationName = '';
-  let currentVersion = '';
-  let sessionIndex = 0;
+  let currentStationConclusion: StationConclusion | undefined;
+  let currentVin = '';
+  let currentAdVersion = '';
+  let currentTestDate = '';
 
   for (let i = 2; i < rows.length; i++) {
     const row = rows[i];
@@ -108,20 +127,29 @@ function parseComplexExcelFormat(workbook: XLSX.WorkBook): TestRecord[] {
 
     const stationName = String(row[1] || '').trim();
     if (stationName) {
+      stationIndex++;
+      rowOffset = 0;
       currentStationName = stationName;
-    }
-
-    const version = String(row[4] || '').trim();
-    if (version) {
-      currentVersion = version;
+      currentStationConclusion = normalizeStationConclusion(String(row[2] || ''));
+      currentVin = String(row[3] || '').trim();
+      currentAdVersion = String(row[4] || '').trim();
+      currentTestDate = normalizeDateValue(row[6]);
+    } else {
+      rowOffset++;
     }
 
     if (!currentStationName) continue;
+    if (rowOffset < 0 || rowOffset > 3) continue;
+
+    const sessionId = `station-${stationIndex}-test-${rowOffset}`;
+    const version = currentAdVersion || 'unknown';
 
     const entryResult = normalizeComplexResult(String(row[8] || ''));
     const parkingResult = normalizeComplexResult(String(row[9] || ''));
     const departureResult = normalizeComplexResult(String(row[18] || ''));
 
+    const singleResult = String(row[5] || '').trim() || undefined;
+    const testDate = currentTestDate || undefined;
     const parkingIssue = String(row[10] || '').trim();
     const siteIssue = String(row[13] || '').trim();
     const departureIssue = String(row[19] || '').trim();
@@ -131,23 +159,52 @@ function parseComplexExcelFormat(workbook: XLSX.WorkBook): TestRecord[] {
     const hasAnyResult = entryResult || parkingResult || departureResult;
     if (!hasAnyResult) continue;
 
-    sessionIndex++;
-    const sessionId = `session-${sessionIndex}`;
-
     if (entryResult) {
-      records.push(createRecord(sessionId, currentStationName, currentVersion, '进站', entryResult, parkingIssue || siteIssue, parkingRemark));
+      records.push(
+        createRecord(sessionId, currentStationName, version, '进站', entryResult, parkingIssue || siteIssue, parkingRemark, {
+          stationConclusion: currentStationConclusion,
+          vin: currentVin,
+          adVersion: currentAdVersion,
+          testDate,
+          singleResult,
+        })
+      );
     }
 
     if (parkingResult) {
-      records.push(createRecord(sessionId, currentStationName, currentVersion, '停泊', parkingResult, parkingIssue || siteIssue, parkingRemark));
+      records.push(
+        createRecord(sessionId, currentStationName, version, '停泊', parkingResult, parkingIssue || siteIssue, parkingRemark, {
+          stationConclusion: currentStationConclusion,
+          vin: currentVin,
+          adVersion: currentAdVersion,
+          testDate,
+          singleResult,
+        })
+      );
     }
 
     if (departureResult) {
-      records.push(createRecord(sessionId, currentStationName, currentVersion, '出站', departureResult, departureIssue || siteIssue, departureRemark));
+      records.push(
+        createRecord(sessionId, currentStationName, version, '出站', departureResult, departureIssue || siteIssue, departureRemark, {
+          stationConclusion: currentStationConclusion,
+          vin: currentVin,
+          adVersion: currentAdVersion,
+          testDate,
+          singleResult,
+        })
+      );
     }
   }
 
   return records;
+}
+
+interface RecordExtras {
+  stationConclusion?: StationConclusion;
+  vin?: string;
+  adVersion?: string;
+  testDate?: string;
+  singleResult?: string;
 }
 
 function createRecord(
@@ -157,7 +214,8 @@ function createRecord(
   testType: TestType,
   result: ResultType,
   issueCategory: string,
-  issueDescription: string
+  issueDescription: string,
+  extras?: RecordExtras
 ): TestRecord {
   const category = issueCategory || undefined;
   const description = issueDescription || undefined;
@@ -173,6 +231,11 @@ function createRecord(
     issueCategory: category,
     issueDescription: description,
     impact,
+    stationConclusion: extras?.stationConclusion,
+    vin: extras?.vin || undefined,
+    adVersion: extras?.adVersion || undefined,
+    testDate: extras?.testDate || undefined,
+    singleResult: extras?.singleResult,
   };
 }
 
@@ -185,6 +248,32 @@ function normalizeComplexResult(value: string): ResultType | null {
     return '失败';
   }
   return null;
+}
+
+function normalizeStationConclusion(value: string): StationConclusion | undefined {
+  const normalized = value.trim();
+  if (normalized === '通过' || normalized === '不通过' || normalized === '站点不合理') {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeDateValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  if (value instanceof Date) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    if (y < 1901) return '';
+    return `${y}-${m}-${d}`;
+  }
+  if (typeof value === 'number') {
+    const date = XLSX.SSF.parse_date_code(value);
+    if (date && date.y > 1900) {
+      return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+    }
+  }
+  return String(value).trim();
 }
 
 export function parseJSON(file: File): Promise<TestRecord[]> {
@@ -254,7 +343,7 @@ function normalizeRecords(rows: Record<string, unknown>[]): TestRecord[] {
     const impact = issueCategory ? (IMPACT_MAP[issueCategory] || '未分类') : undefined;
 
     records.push({
-      sessionId: `record-${index}`,
+      sessionId: normalized.sessionId ? String(normalized.sessionId) : `record-${index}`,
       stationId: String(normalized.stationId || normalized.stationName || 'unknown'),
       stationName: String(normalized.stationName || normalized.stationId || 'unknown'),
       version: String(normalized.version || 'unknown'),
@@ -264,6 +353,11 @@ function normalizeRecords(rows: Record<string, unknown>[]): TestRecord[] {
       issueDescription: normalized.issueDescription ? String(normalized.issueDescription) : undefined,
       impact,
       testTime: normalized.testTime ? String(normalized.testTime) : undefined,
+      stationConclusion: normalizeStationConclusion(String(normalized.stationConclusion || '')),
+      vin: normalized.vin ? String(normalized.vin) : undefined,
+      adVersion: normalized.adVersion ? String(normalized.adVersion) : undefined,
+      testDate: normalized.testDate ? String(normalized.testDate) : undefined,
+      singleResult: normalized.singleResult ? String(normalized.singleResult) : undefined,
     });
   });
 

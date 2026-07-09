@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0B0F19',
-        card: '#151B2B',
-        accent: '#00F0FF',
-        danger: '#FF5F57',
-        muted: '#94A3B8',
+        bg: '#F8FAFC',
+        card: '#FFFFFF',
+        accent: '#0EA5E9',
+        danger: '#EF4444',
+        muted: '#64748B',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"SF Mono"', 'Menlo', 'monospace'],

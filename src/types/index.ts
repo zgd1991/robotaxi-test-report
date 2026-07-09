@@ -1,5 +1,6 @@
 export type TestType = '进站' | '出站' | '完整站点测试' | '停泊';
 export type ResultType = '通过' | '失败';
+export type StationConclusion = '通过' | '不通过' | '站点不合理';
 
 export interface TestRecord {
   sessionId: string;
@@ -12,6 +13,11 @@ export interface TestRecord {
   issueDescription?: string;
   impact?: string;
   testTime?: string;
+  stationConclusion?: StationConclusion;
+  vin?: string;
+  adVersion?: string;
+  testDate?: string;
+  singleResult?: string;
 }
 
 export interface TestTypeStat {
@@ -29,9 +35,20 @@ export interface DirectionStat {
   rate: number;
 }
 
+export interface StationConclusionStats {
+  total: number;
+  passed: number;
+  failed: number;
+  unreasonable: number;
+  unfinished: number;
+  passRate: number;
+  failRate: number;
+  unreasonableRate: number;
+  unfinishedRate: number;
+}
+
 export interface IssueStat {
   category: string;
-  impact: string;
   count: number;
   percentage: number;
 }
@@ -65,21 +82,28 @@ export interface ChangeItem {
   change: number;
 }
 
+export interface ReportMetadata {
+  testDate?: string;
+  vin?: string;
+  adVersion?: string;
+  versions: string[];
+  stationCount: number;
+  totalSessions: number;
+}
+
 export interface ReportData {
   totalTests: number;
   passedTests: number;
   failedTests: number;
   overallPassRate: number;
   singleTestStats: DirectionStat;
-  stationOverallStats: DirectionStat;
-  stationCount: number;
-  versions: string[];
-  testTypeStats: TestTypeStat[];
+  completedStations: number;
+  stationConclusionStats: StationConclusionStats;
+  metadata: ReportMetadata;
   entryStats: DirectionStat;
   exitStats: DirectionStat;
   parkingStats: DirectionStat;
   issueStats: IssueStat[];
-  impactStats: ImpactStat[];
   topIssues: IssueStat[];
   versionStats: VersionStat[];
   versionChanges: VersionChange[];

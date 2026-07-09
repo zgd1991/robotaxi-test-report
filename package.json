@@ -3,12 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
+  "productName": "Robotaxi站点报告输出_智行版本",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "electron:dev": "NODE_ENV=development electron electron/main.cjs",
+    "electron:build": "npm run build && electron-builder --publish=never",
+    "electron:pack": "npm run build && electron-builder --dir --publish=never",
+    "dist": "npm run electron:build"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -27,11 +33,56 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.4.20",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.7",
     "oxlint": "^1.71.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
     "vitest": "^2.1.9"
+  },
+  "build": {
+    "appId": "com.example.robotaxi-station-report-zhixing",
+    "productName": "Robotaxi站点报告输出_智行版本",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
+      ]
+    }
   }
 }
