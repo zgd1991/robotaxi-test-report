@@ -71,17 +71,13 @@ function isSingleTestPassed(sessionRecords: TestRecord[]): boolean {
 }
 
 function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): StationConclusionStats {
-  const stationConclusions = new Map<string, StationConclusion | undefined>();
+  const stationSessions = new Map<string, TestRecord[][]>();
 
   for (const sessionRecords of sessions.values()) {
     const stationName = sessionRecords[0]?.stationName || 'unknown';
-    const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
-    if (conclusion) {
-      const existing = stationConclusions.get(stationName);
-      stationConclusions.set(stationName, mergeStationConclusion(existing, conclusion));
-    } else if (!stationConclusions.has(stationName)) {
-      stationConclusions.set(stationName, undefined);
-    }
+    const existing = stationSessions.get(stationName) || [];
+    existing.push(sessionRecords);
+    stationSessions.set(stationName, existing);
   }
 
   let passed = 0;
@@ -89,7 +85,8 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
   let unreasonable = 0;
   let unfinished = 0;
 
-  for (const conclusion of stationConclusions.values()) {
+  for (const stationSessionList of stationSessions.values()) {
+    const conclusion = determineStationConclusion(stationSessionList);
     if (conclusion === '通过') passed++;
     else if (conclusion === '不通过') failed++;
     else if (conclusion === '站点不合理') unreasonable++;
@@ -106,12 +103,27 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
   return { total, passed, failed, unreasonable, unfinished, passRate, failRate, unreasonableRate, unfinishedRate };
 }
 
-function mergeStationConclusion(a: StationConclusion | undefined, b: StationConclusion): StationConclusion {
-  const priority: Record<StationConclusion, number> = { '站点不合理': 3, '不通过': 2, '通过': 1 };
-  const pa = a ? priority[a] : 0;
-  const pb = priority[b];
-  return pa >= pb ? (a as StationConclusion) : b;
+function determineStationConclusion(stationSessionList: TestRecord[][]): StationConclusion | undefined {
+  let passCount = 0;
+  let failCount = 0;
+  let hasUnreasonable = false;
+
+  for (const sessionRecords of stationSessionList) {
+    if (isSingleTestPassed(sessionRecords)) {
+      passCount++;
+    } else {
+      failCount++;
+    }
+    const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
+    if (conclusion === '站点不合理') hasUnreasonable = true;
+  }
+
+  if (passCount >= 3) return '通过';
+  if (failCount >= 2) return '不通过';
+  if (hasUnreasonable) return '站点不合理';
+  return undefined;
 }
+
 
 function buildMetadata(records: TestRecord[], sessions: Map<string, TestRecord[]>): ReportMetadata {
   const firstRecord = records[0];
