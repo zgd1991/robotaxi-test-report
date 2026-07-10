@@ -22,13 +22,13 @@ export function StatCards({ data }: StatCardsProps) {
           key={item.label}
           className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5"
         >
-          <div className="flex items-center gap-2 text-sm text-muted">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
             <item.icon size={16} />
             {item.label}
           </div>
           <div className="font-mono-data text-2xl font-semibold text-slate-900">
             {item.value}
-            <span className="ml-1 text-lg text-accent">{item.suffix}</span>
+            <span className="ml-1 text-lg text-slate-500">{item.suffix}</span>
           </div>
         </div>
       ))}

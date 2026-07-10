@@ -42,20 +42,20 @@ export function UploadZone() {
     <div
       onDrop={onDrop}
       onDragOver={onDragOver}
-      className="group relative flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center transition-colors hover:border-accent hover:bg-slate-50"
+      className="group relative flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12 text-center transition-colors hover:border-slate-500 hover:bg-slate-50"
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-accent text-accent transition-transform group-hover:scale-105">
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-slate-300 text-slate-500 transition-transform group-hover:scale-105">
         <Upload size={28} />
       </div>
       <div>
         <p className="text-base font-medium text-slate-900">拖拽文件到此处，或点击上传</p>
-        <p className="mt-2 text-sm text-muted">支持 CSV、Excel（.xlsx / .xls）、JSON</p>
+        <p className="mt-2 text-sm text-slate-500">支持 CSV、Excel（.xlsx / .xls）、JSON</p>
       </div>
-      <label className="cursor-pointer rounded-lg border border-accent bg-white px-6 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-white">
+      <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900">
         选择文件
         <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={onInputChange} className="hidden" />
       </label>
-      <div className="flex gap-6 text-muted">
+      <div className="flex gap-6 text-slate-500">
         <FileText size={20} />
         <FileSpreadsheet size={20} />
         <FileJson size={20} />

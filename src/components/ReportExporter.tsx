@@ -28,7 +28,7 @@ export function ReportExporter({ data }: ReportExporterProps) {
       <button
         type="button"
         onClick={handleDownloadExcel}
-        className="flex items-center gap-2 rounded-lg border border-accent bg-white px-5 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-accent hover:text-white"
+        className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
       >
         <Download size={16} />
         导出 Excel
@@ -36,9 +36,9 @@ export function ReportExporter({ data }: ReportExporterProps) {
       <button
         type="button"
         onClick={handleCopy}
-        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm text-slate-700 transition-colors hover:border-accent hover:text-accent"
+        className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
       >
-        {copied ? <Check size={16} className="text-accent" /> : <Copy size={16} />}
+        {copied ? <Check size={16} /> : <Copy size={16} />}
         {copied ? '已复制' : '复制表格'}
       </button>
     </div>

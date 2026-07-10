@@ -17,7 +17,7 @@ interface ChartsSectionProps {
   data: ReportData;
 }
 
-const COLORS = ['#0EA5E9', '#F59E0B', '#EF4444', '#10B981', '#8B5CF6', '#EC4899'];
+const GRAY_COLORS = ['#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9'];
 
 export function ChartsSection({ data }: ChartsSectionProps) {
   const capabilityData = [
@@ -52,7 +52,7 @@ export function ChartsSection({ data }: ChartsSectionProps) {
                 contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b' }}
                 formatter={(value: number) => [`${value}%`, '成功率']}
               />
-              <Bar dataKey="rate" fill="#0EA5E9" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="rate" fill="#64748b" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -70,7 +70,7 @@ export function ChartsSection({ data }: ChartsSectionProps) {
                 contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b' }}
                 formatter={(value: number) => [`${value}%`, '占比']}
               />
-              <Bar dataKey="rate" fill="#F59E0B" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="rate" fill="#64748b" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -93,7 +93,7 @@ export function ChartsSection({ data }: ChartsSectionProps) {
                   paddingAngle={3}
                 >
                   {conclusionData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={GRAY_COLORS[index % GRAY_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip
@@ -104,7 +104,7 @@ export function ChartsSection({ data }: ChartsSectionProps) {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted">暂无站点结论数据</div>
+            <div className="flex h-full items-center justify-center text-sm text-slate-500">暂无站点结论数据</div>
           )}
         </div>
       </div>
