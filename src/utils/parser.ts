@@ -253,7 +253,7 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
         );
       }
 
-      if (parkingResult) {
+      if (parkingResult && entryResult !== '失败') {
         const issueCategory = extractTagCategory(parkingTag) || entryDesc || undefined;
         records.push(
           createRecord(sessionId, stationName, version, '停泊', parkingResult, issueCategory || '', issueDescription || '', {

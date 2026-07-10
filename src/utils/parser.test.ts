@@ -45,15 +45,23 @@ describe('parseNewExcelFormat', () => {
     ];
 
     const records = parseNewExcelFormat(rows);
-    expect(records.length).toBe(7);
+    // 站点 A: 进站+停泊 (2)；站点 B: 进站+出站 (停泊因进站失败被跳过)；站点 C: 进站 (停泊因进站失败被跳过)
+    expect(records.length).toBe(5);
 
     const aEntry = records.find((r) => r.sessionId === 'new-1' && r.testType === '进站');
     expect(aEntry?.result).toBe('通过');
     expect(aEntry?.issueCategory).toBe('有障碍物，未进停车位');
 
+    // 站点 B 进站失败，停泊记录应被跳过
     const bParking = records.find((r) => r.sessionId === 'new-2' && r.testType === '停泊');
-    expect(bParking?.result).toBe('失败');
-    expect(bParking?.issueCategory).toBe('车身姿态异常');
+    expect(bParking).toBeUndefined();
+
+    const bEntry = records.find((r) => r.sessionId === 'new-2' && r.testType === '进站');
+    expect(bEntry?.result).toBe('失败');
+    expect(bEntry?.issueCategory).toBe('停车危险驾驶');
+
+    const bDeparture = records.find((r) => r.sessionId === 'new-2' && r.testType === '出站');
+    expect(bDeparture?.result).toBe('通过');
 
     const cEntry = records.find((r) => r.sessionId === 'new-3' && r.testType === '进站');
     expect(cEntry?.result).toBe('失败');
@@ -74,9 +82,9 @@ describe('parseNewExcelFormat', () => {
     const versions = new Set(records.map((r) => r.version));
     const vins = new Set(records.map((r) => r.vin).filter(Boolean));
 
-    expect(sessions.size).toBe(63);
-    expect(stations.size).toBe(26);
-    expect(records.length).toBeGreaterThan(63);
+    expect(sessions.size).toBe(29);
+    expect(stations.size).toBe(14);
+    expect(records.length).toBeGreaterThan(29);
     expect(versions.size).toBeGreaterThan(0);
     expect(vins.size).toBeGreaterThan(0);
   });
