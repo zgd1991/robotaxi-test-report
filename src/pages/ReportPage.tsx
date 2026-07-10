@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Car, Gauge, MapPin, Hash } from 'lucide-react';
 import { useReportStore } from '../store/useReportStore';
-import { ChartsSection } from '../components/ChartsSection';
 import { IssueTable } from '../components/IssueTable';
 import { VersionComparison } from '../components/VersionComparison';
 import { ReportExporter } from '../components/ReportExporter';
@@ -92,7 +91,6 @@ export function ReportPage() {
           </div>
         </section>
 
-        <ChartsSection data={report} />
         <IssueTable data={report} />
         <VersionComparison data={report} />
       </div>
