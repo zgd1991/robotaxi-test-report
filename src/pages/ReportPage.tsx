@@ -25,7 +25,7 @@ export function ReportPage() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-900"
+          className="flex w-fit items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
         >
           <ArrowLeft size={16} />
           返回上传
@@ -41,8 +41,8 @@ export function ReportPage() {
       </div>
 
       <div className="flex flex-col gap-8">
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-slate-50 px-6 py-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+          <div className="bg-slate-100 px-6 py-4">
             <h3 className="text-sm font-semibold text-slate-900">测试基本信息</h3>
           </div>
           <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-3 lg:grid-cols-5">
@@ -54,8 +54,8 @@ export function ReportPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-slate-50 px-6 py-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+          <div className="bg-slate-100 px-6 py-4">
             <h3 className="text-sm font-semibold text-slate-900">站点整体通过性</h3>
             <p className="mt-1 text-xs text-slate-500">站点整体通过率仅统计已完成4次测试法的站点</p>
           </div>
@@ -69,8 +69,8 @@ export function ReportPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-slate-50 px-6 py-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+          <div className="bg-slate-100 px-6 py-4">
             <h3 className="text-sm font-semibold text-slate-900">单次测试统计</h3>
           </div>
           <div className="grid grid-cols-2 gap-4 p-6 lg:grid-cols-4">
@@ -81,8 +81,8 @@ export function ReportPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-slate-50 px-6 py-4">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+          <div className="bg-slate-100 px-6 py-4">
             <h3 className="text-sm font-semibold text-slate-900">单项能力统计</h3>
           </div>
           <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-3">
@@ -102,7 +102,7 @@ export function ReportPage() {
 
 function InfoItem({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
         {icon}
         {label}
@@ -122,7 +122,7 @@ function StatItem({ label, value, suffix, valueColor = 'slate' }: { label: strin
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="text-xs font-medium text-slate-500">{label}</div>
       <div className={`mt-2 font-mono-data text-2xl font-semibold ${valueColors[valueColor]}`}>
         {value}
@@ -134,21 +134,21 @@ function StatItem({ label, value, suffix, valueColor = 'slate' }: { label: strin
 
 function CapabilityCard({ title, stats }: { title: string; stats: { total: number; passed: number; failed: number; rate: number } }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-5">
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-semibold text-slate-700">{title}</span>
         <span className="font-mono-data text-2xl font-bold text-slate-900">{stats.rate}%</span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-white p-2">
+        <div className="rounded-lg bg-slate-50 p-2">
           <div className="text-xs text-slate-500">次数</div>
           <div className="font-mono-data font-semibold text-slate-900">{stats.total}</div>
         </div>
-        <div className="rounded-lg bg-white p-2">
+        <div className="rounded-lg bg-slate-50 p-2">
           <div className="text-xs text-emerald-600">通过</div>
           <div className="font-mono-data font-semibold text-emerald-600">{stats.passed}</div>
         </div>
-        <div className="rounded-lg bg-white p-2">
+        <div className="rounded-lg bg-slate-50 p-2">
           <div className="text-xs text-rose-600">失败</div>
           <div className="font-mono-data font-semibold text-rose-600">{stats.failed}</div>
         </div>

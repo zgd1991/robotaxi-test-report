@@ -40,9 +40,9 @@ export function ChartsSection({ data }: ChartsSectionProps) {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <h3 className="mb-4 text-sm font-medium text-slate-900">单项能力成功率</h3>
-        <div className="h-64">
+        <div className="h-64 rounded-xl bg-white p-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={capabilityData} layout="vertical" margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -58,9 +58,9 @@ export function ChartsSection({ data }: ChartsSectionProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <h3 className="mb-4 text-sm font-medium text-slate-900">单次测试通过</h3>
-        <div className="h-64">
+        <div className="h-64 rounded-xl bg-white p-2">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={singleTestData} layout="vertical" margin={{ left: 80, right: 20, top: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -76,9 +76,9 @@ export function ChartsSection({ data }: ChartsSectionProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <h3 className="mb-4 text-sm font-medium text-slate-900">站点结论分布</h3>
-        <div className="h-64">
+        <div className="h-64 rounded-xl bg-white p-2">
           {conclusionData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

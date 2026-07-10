@@ -8,7 +8,7 @@ interface VersionComparisonProps {
 export function VersionComparison({ data }: VersionComparisonProps) {
   if (data.versionChanges.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <h3 className="mb-2 text-sm font-medium text-slate-900">版本优化与回退项</h3>
         <p className="text-sm text-slate-500">仅有一个版本数据，无法计算版本间优化/回退项。</p>
       </div>
@@ -26,12 +26,12 @@ export function VersionComparison({ data }: VersionComparisonProps) {
 
 function VersionChangeCard({ change }: { change: VersionChange }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
       <h3 className="mb-4 text-sm font-medium text-slate-900">
         {change.previousVersion} → {change.version}
       </h3>
 
-      <div className="mb-4">
+      <div className="mb-4 rounded-xl bg-white p-4">
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-700">
           <TrendingUp size={16} />
           优化项
@@ -50,7 +50,7 @@ function VersionChangeCard({ change }: { change: VersionChange }) {
         )}
       </div>
 
-      <div>
+      <div className="rounded-xl bg-white p-4">
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-700">
           <TrendingDown size={16} />
           回退项

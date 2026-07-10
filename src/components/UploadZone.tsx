@@ -42,9 +42,9 @@ export function UploadZone() {
     <div
       onDrop={onDrop}
       onDragOver={onDragOver}
-      className="group relative flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed border-slate-300 bg-white p-12 text-center transition-colors hover:border-slate-500 hover:bg-slate-50"
+      className="group relative flex flex-col items-center justify-center gap-6 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center transition-colors hover:border-slate-500 hover:bg-white"
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-slate-300 text-slate-500 transition-transform group-hover:scale-105">
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-500 transition-transform group-hover:scale-105">
         <Upload size={28} />
       </div>
       <div>

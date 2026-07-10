@@ -7,12 +7,12 @@ interface IssueTableProps {
 
 export function IssueTable({ data }: IssueTableProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
       <div className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-900">
         <AlertTriangle size={16} className="text-slate-500" />
         问题分类明细
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl bg-white p-4">
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 text-left text-slate-500">
             <tr>
