@@ -8,9 +8,9 @@ interface VersionComparisonProps {
 export function VersionComparison({ data }: VersionComparisonProps) {
   if (data.versionChanges.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <div className="rounded-2xl border border-slate-300 bg-slate-200 p-5">
         <h3 className="mb-2 text-sm font-medium text-slate-900">版本优化与回退项</h3>
-        <p className="text-sm text-slate-500">仅有一个版本数据，无法计算版本间优化/回退项。</p>
+        <p className="text-sm text-slate-700">仅有一个版本数据，无法计算版本间优化/回退项。</p>
       </div>
     );
   }
@@ -26,46 +26,46 @@ export function VersionComparison({ data }: VersionComparisonProps) {
 
 function VersionChangeCard({ change }: { change: VersionChange }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+    <div className="rounded-2xl border border-slate-300 bg-slate-200 p-5">
       <h3 className="mb-4 text-sm font-medium text-slate-900">
         {change.previousVersion} → {change.version}
       </h3>
 
-      <div className="mb-4 rounded-xl bg-white p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-700">
+      <div className="mb-4 rounded-xl bg-slate-100 p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm text-slate-800">
           <TrendingUp size={16} />
           优化项
         </div>
         {change.improvements.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
             {change.improvements.map((item, index) => (
-              <li key={index} className="text-slate-600">
+              <li key={index} className="text-slate-700">
                 {item.stationName ? `【${item.stationName}】` : ''}
                 {item.testType} 成功率 {item.previousRate}% → {item.currentRate}%（+{item.change}%）
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">无</p>
+          <p className="text-sm text-slate-600">无</p>
         )}
       </div>
 
-      <div className="rounded-xl bg-white p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-700">
+      <div className="rounded-xl bg-slate-100 p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm text-slate-800">
           <TrendingDown size={16} />
           回退项
         </div>
         {change.regressions.length > 0 ? (
           <ul className="space-y-1.5 text-sm">
             {change.regressions.map((item, index) => (
-              <li key={index} className="text-slate-600">
+              <li key={index} className="text-slate-700">
                 {item.stationName ? `【${item.stationName}】` : ''}
                 {item.testType} 成功率 {item.previousRate}% → {item.currentRate}%（{item.change}%）
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">无</p>
+          <p className="text-sm text-slate-600">无</p>
         )}
       </div>
     </div>
