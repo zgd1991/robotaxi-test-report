@@ -35,7 +35,7 @@ export function ChartsSection({ data }: ChartsSectionProps) {
     { name: '通过', value: data.stationConclusionStats.passed },
     { name: '不通过', value: data.stationConclusionStats.failed },
     { name: '站点不合理', value: data.stationConclusionStats.unreasonable },
-    { name: '未完成', value: data.stationConclusionStats.unfinished },
+    { name: '未完成4次测试法', value: data.stationConclusionStats.unfinished },
   ].filter((item) => item.value > 0);
 
   return (

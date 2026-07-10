@@ -63,7 +63,7 @@ function buildCopyText(data: ReportData): string {
   lines.push(`通过\t${data.stationConclusionStats.passed}`);
   lines.push(`不通过\t${data.stationConclusionStats.failed}`);
   lines.push(`站点不合理\t${data.stationConclusionStats.unreasonable}`);
-  lines.push(`未完成\t${data.stationConclusionStats.unfinished}`);
+  lines.push(`未完成4次测试法\t${data.stationConclusionStats.unfinished}`);
   lines.push(`站点整体通过率\t${data.stationConclusionStats.passRate}%`);
   lines.push('');
   lines.push('单次测试统计');

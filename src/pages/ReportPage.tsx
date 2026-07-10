@@ -80,13 +80,14 @@ export function ReportPage() {
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="bg-slate-50 px-6 py-4">
             <h3 className="text-sm font-semibold text-slate-900">站点整体通过性</h3>
+            <p className="mt-1 text-xs text-slate-500">站点整体通过率仅统计已完成4次测试法的站点</p>
           </div>
           <div className="grid grid-cols-2 gap-4 p-6 lg:grid-cols-6">
             <StatItem label="完成站点数" value={report.completedStations} suffix="" color="blue" />
             <StatItem label="通过" value={report.stationConclusionStats.passed} suffix="" color="emerald" />
             <StatItem label="不通过" value={report.stationConclusionStats.failed} suffix="" color="rose" />
             <StatItem label="站点不合理" value={report.stationConclusionStats.unreasonable} suffix="" color="amber" />
-            <StatItem label="未完成" value={report.stationConclusionStats.unfinished} suffix="" color="slate" />
+            <StatItem label="未完成4次测试法" value={report.stationConclusionStats.unfinished} suffix="" color="slate" />
             <StatItem label="站点整体通过率" value={report.stationConclusionStats.passRate} suffix="%" color="blue" />
           </div>
         </section>

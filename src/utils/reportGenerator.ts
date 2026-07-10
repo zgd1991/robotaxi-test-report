@@ -27,7 +27,7 @@ export function generateExcelReport(data: ReportData): ArrayBuffer {
   sheetData.push(['通过', data.stationConclusionStats.passed]);
   sheetData.push(['不通过', data.stationConclusionStats.failed]);
   sheetData.push(['站点不合理', data.stationConclusionStats.unreasonable]);
-  sheetData.push(['未完成', data.stationConclusionStats.unfinished]);
+  sheetData.push(['未完成4次测试法', data.stationConclusionStats.unfinished]);
   sheetData.push(['站点整体通过率', `${data.stationConclusionStats.passRate}%`]);
   sheetData.push(['']);
 
