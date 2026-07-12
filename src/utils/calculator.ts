@@ -11,6 +11,7 @@ export function calculateReport(records: TestRecord[]): ReportData {
   const parkingStats = buildDirectionStats(records, '停泊');
 
   const issueStats = buildIssueStats(records);
+  const issueStatsByType = buildIssueStatsByType(records);
   const topIssues = [...issueStats].sort((a, b) => b.count - a.count).slice(0, 3);
 
   const versionStats = buildVersionStats(records);
@@ -29,6 +30,7 @@ export function calculateReport(records: TestRecord[]): ReportData {
     exitStats,
     parkingStats,
     issueStats,
+    issueStatsByType,
     topIssues,
     versionStats,
     versionChanges,
@@ -167,6 +169,36 @@ function buildIssueStats(records: TestRecord[]): IssueStat[] {
       percentage: totalIssues > 0 ? parseFloat(((count / totalIssues) * 100).toFixed(1)) : 0,
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+function buildIssueStatsByType(records: TestRecord[]): Record<'进站' | '停泊' | '出站', IssueStat[]> {
+  const types: ('进站' | '停泊' | '出站')[] = ['进站', '停泊', '出站'];
+  const result: Record<'进站' | '停泊' | '出站', IssueStat[]> = {
+    进站: [],
+    停泊: [],
+    出站: [],
+  };
+
+  for (const type of types) {
+    const failedRecords = records.filter((r) => r.testType === type && r.result === '失败' && r.issueCategory);
+    const totalIssues = failedRecords.length;
+    const counts = new Map<string, number>();
+
+    for (const record of failedRecords) {
+      const category = record.issueCategory || '未分类';
+      counts.set(category, (counts.get(category) || 0) + 1);
+    }
+
+    result[type] = Array.from(counts.entries())
+      .map(([category, count]) => ({
+        category,
+        count,
+        percentage: totalIssues > 0 ? parseFloat(((count / totalIssues) * 100).toFixed(1)) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  return result;
 }
 
 function buildVersionStats(records: TestRecord[]): VersionStat[] {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, Check, Copy } from 'lucide-react';
-import { generateExcelReport, downloadExcel } from '../utils/reportGenerator';
+import { generateExcelReport, downloadExcel, generateReportFilename } from '../utils/reportGenerator';
 import type { ReportData } from '../types';
 
 interface ReportExporterProps {
@@ -10,9 +10,9 @@ interface ReportExporterProps {
 export function ReportExporter({ data }: ReportExporterProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleDownloadExcel = () => {
-    const content = generateExcelReport(data);
-    const filename = `robotaxi-station-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const handleDownloadExcel = async () => {
+    const content = await generateExcelReport(data);
+    const filename = generateReportFilename(data);
     downloadExcel(content, filename);
   };
 

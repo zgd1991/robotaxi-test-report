@@ -104,6 +104,7 @@ export interface ReportData {
   exitStats: DirectionStat;
   parkingStats: DirectionStat;
   issueStats: IssueStat[];
+  issueStatsByType: Record<'进站' | '停泊' | '出站', IssueStat[]>;
   topIssues: IssueStat[];
   versionStats: VersionStat[];
   versionChanges: VersionChange[];
