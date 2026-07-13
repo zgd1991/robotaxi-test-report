@@ -91,6 +91,11 @@ export interface ReportMetadata {
   totalSessions: number;
 }
 
+export interface StationConclusionItem {
+  stationName: string;
+  conclusion: StationConclusion;
+}
+
 export interface ReportData {
   totalTests: number;
   passedTests: number;
@@ -99,6 +104,7 @@ export interface ReportData {
   singleTestStats: DirectionStat;
   completedStations: number;
   stationConclusionStats: StationConclusionStats;
+  stationConclusions: StationConclusionItem[];
   metadata: ReportMetadata;
   entryStats: DirectionStat;
   exitStats: DirectionStat;

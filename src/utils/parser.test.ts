@@ -19,6 +19,14 @@ describe('parseText', () => {
     expect(records[1].testDate).toBe('2026-07-01');
   });
 
+  it('extracts ZRD.V3.0-Robot-TU.Z30.2026.24.r adVersion field', () => {
+    const text = `站点名称,版本,测试类型,测试结果,问题类别,影响方向,VIN,智驾版本,日期,单次测试结果,站点结论
+站点 A,v1.0.0,进站,通过,,,VIN001,智驾(ZRD.V3.0-Robot-TU.Z30.2026.24.r.2026-07-10-xxx),2026-07-01,OK,通过`;
+    const records = parseText(text);
+    expect(records.length).toBe(1);
+    expect(records[0].adVersion).toBe('ZRD.V3.0-Robot-TU.Z30.2026.24.r');
+  });
+
   it('returns empty array for invalid text', () => {
     const records = parseText('hello world');
     expect(records.length).toBe(0);
@@ -50,7 +58,7 @@ describe('parseNewExcelFormat', () => {
 
     const aEntry = records.find((r) => r.sessionId === 'new-1' && r.testType === '进站');
     expect(aEntry?.result).toBe('通过');
-    expect(aEntry?.issueCategory).toBe('有障碍物，未进停车位');
+    expect(aEntry?.issueCategory).toBe('进站成功');
 
     // 站点 B 进站失败，停泊记录应被跳过
     const bParking = records.find((r) => r.sessionId === 'new-2' && r.testType === '停泊');
@@ -68,6 +76,23 @@ describe('parseNewExcelFormat', () => {
     expect(cEntry?.issueCategory).toBe('站点不合理');
     expect(cEntry?.stationConclusion).toBe('站点不合理');
     expect(cEntry?.testDate).toBe('2026-06-28');
+  });
+
+  it('parses user Excel file with split time header', () => {
+    const filePath = '/Users/zhangguangdong/Downloads/站点测试_1783908488234.xlsx';
+    const workbook = XLSX.readFile(filePath);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    const records = parseNewExcelFormat(rows as unknown[][]);
+
+    const entryCount = records.filter((r) => r.testType === '进站').length;
+    const parkingCount = records.filter((r) => r.testType === '停泊').length;
+    const exitCount = records.filter((r) => r.testType === '出站').length;
+
+    expect(entryCount).toBeGreaterThan(0);
+    expect(parkingCount).toBeGreaterThan(0);
+    expect(exitCount).toBeGreaterThan(0);
+    expect(records.length).toBeGreaterThan(0);
   });
 
   it('parses the new Excel file and counts sessions/stations', () => {

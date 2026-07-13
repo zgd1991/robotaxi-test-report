@@ -1,9 +1,10 @@
-import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, StationConclusion, StationConclusionStats, TestRecord, TestType, VersionChange, VersionStat } from '../types';
+import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, StationConclusion, StationConclusionItem, StationConclusionStats, TestRecord, TestType, VersionChange, VersionStat } from '../types';
 
 export function calculateReport(records: TestRecord[]): ReportData {
   const sessions = groupBySession(records);
   const singleTestStats = buildSingleTestStats(sessions);
   const stationConclusionStats = buildStationConclusionStats(sessions);
+  const stationConclusions = buildStationConclusions(sessions);
   const metadata = buildMetadata(records, sessions);
 
   const entryStats = buildDirectionStats(records, '进站');
@@ -25,6 +26,7 @@ export function calculateReport(records: TestRecord[]): ReportData {
     singleTestStats,
     completedStations: stationConclusionStats.total,
     stationConclusionStats,
+    stationConclusions,
     metadata,
     entryStats,
     exitStats,
@@ -105,6 +107,26 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
   return { total, passed, failed, unreasonable, unfinished, passRate, failRate, unreasonableRate, unfinishedRate };
 }
 
+function buildStationConclusions(sessions: Map<string, TestRecord[]>): StationConclusionItem[] {
+  const stationSessions = new Map<string, TestRecord[][]>();
+
+  for (const sessionRecords of sessions.values()) {
+    const stationName = sessionRecords[0]?.stationName || 'unknown';
+    const existing = stationSessions.get(stationName) || [];
+    existing.push(sessionRecords);
+    stationSessions.set(stationName, existing);
+  }
+
+  const results: StationConclusionItem[] = [];
+  for (const [stationName, stationSessionList] of stationSessions.entries()) {
+    const conclusion = determineStationConclusion(stationSessionList);
+    if (conclusion) {
+      results.push({ stationName, conclusion });
+    }
+  }
+  return results;
+}
+
 function determineStationConclusion(stationSessionList: TestRecord[][]): StationConclusion | undefined {
   let passCount = 0;
   let failCount = 0;
@@ -116,8 +138,9 @@ function determineStationConclusion(stationSessionList: TestRecord[][]): Station
     } else {
       failCount++;
     }
-    const conclusion = sessionRecords.find((r) => r.stationConclusion)?.stationConclusion;
-    if (conclusion === '站点不合理') hasUnreasonable = true;
+    if (sessionRecords.some((r) => r.stationConclusion === '站点不合理')) {
+      hasUnreasonable = true;
+    }
   }
 
   if (passCount >= 3) return '通过';
@@ -179,9 +202,11 @@ function buildIssueStatsByType(records: TestRecord[]): Record<'进站' | '停泊
     出站: [],
   };
 
+  // 使用全局问题总数作为分母计算占比
+  const totalIssues = records.filter((r) => r.result === '失败' && r.issueCategory).length;
+
   for (const type of types) {
     const failedRecords = records.filter((r) => r.testType === type && r.result === '失败' && r.issueCategory);
-    const totalIssues = failedRecords.length;
     const counts = new Map<string, number>();
 
     for (const record of failedRecords) {

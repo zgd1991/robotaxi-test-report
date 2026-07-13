@@ -140,7 +140,7 @@ function parseComplexExcelFormat(rows: unknown[][]): TestRecord[] {
       currentStationName = stationName;
       currentStationConclusion = normalizeStationConclusion(String(row[2] || ''));
       currentVin = String(row[3] || '').trim();
-      currentAdVersion = String(row[4] || '').trim();
+      currentAdVersion = normalizeAdVersion(String(row[4] || ''));
       currentTestDate = normalizeDateValue(row[6]);
     } else {
       rowOffset++;
@@ -209,31 +209,63 @@ function parseComplexExcelFormat(rows: unknown[][]): TestRecord[] {
 
 export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
   const records: TestRecord[] = [];
+  if (rows.length < 2) return records;
+
+  const headers = rows[0].map((h) => String(h || '').trim());
+  const col = buildHeaderIndexMap(headers);
+
+  const stationNameIndex = col['站点名称'];
+  const adVersionIndex = col['软件版本'] ?? col['智驾版本'];
+  if (stationNameIndex === undefined || adVersionIndex === undefined) return records;
+
+  const vinIndex = col['车辆vin'] ?? col['VIN'];
+  const testStateIndex = col['测试状态'];
+  const stationStateIndex = col['站点状态'];
+  const testTimeIndex = col['问题打点时间'] ?? col['问题打点时'] ?? col['日期'];
+  const entryDescIndex = col['进站问题描述'];
+  const departureDescIndex = col['出站问题描述'];
+  const entryTagIndex = col['进站标签'];
+  const parkingTagIndex = col['停泊标签'];
+  const departureTagIndex = col['出站标签'];
+
+  function getCell(row: unknown[], index: number | undefined): string {
+    if (index === undefined || index < 0 || index >= row.length) return '';
+    return String(row[index] || '').trim();
+  }
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!row || row.length < 12) continue;
 
-    const stationName = String(row[2] || '').trim();
+    const stationName = getCell(row, stationNameIndex);
     if (!stationName) continue;
 
     const sessionId = `new-${i}`;
-    const vin = String(row[0] || '').trim();
-    const adVersion = String(row[1] || '').trim();
+    const vin = vinIndex !== undefined ? getCell(row, vinIndex) : '';
+    const adVersion = normalizeAdVersion(getCell(row, adVersionIndex));
     const version = adVersion || 'unknown';
-    const testDate = normalizeDateValue(row[5]);
-    const stationConclusion = normalizeStationConclusion(String(row[4] || ''));
-    const singleResult = String(row[3] || '').trim() || undefined;
 
-    const entryResult = normalizeTagResult(String(row[10] || ''), '进站');
-    const parkingResult = normalizeTagResult(String(row[11] || ''), '停泊');
-    const departureResult = normalizeTagResult(String(row[12] || ''), '出站');
+    let testDate: string;
+    if (testTimeIndex !== undefined && headers[testTimeIndex] === '问题打点时') {
+      const dateNum = Number(row[testTimeIndex]);
+      const timeNum = Number(row[testTimeIndex + 1]);
+      testDate = !isNaN(dateNum) && !isNaN(timeNum) ? normalizeDateValue(dateNum + timeNum) : '';
+    } else {
+      testDate = testTimeIndex !== undefined ? normalizeDateValue(row[testTimeIndex]) : '';
+    }
 
-    const entryDesc = String(row[6] || '').trim();
-    const departureDesc = String(row[7] || '').trim();
-    const entryTag = String(row[10] || '').trim();
-    const parkingTag = String(row[11] || '').trim();
-    const departureTag = String(row[12] || '').trim();
+    const stationConclusion = stationStateIndex !== undefined ? normalizeStationConclusion(getCell(row, stationStateIndex)) : undefined;
+    const singleResult = testStateIndex !== undefined ? getCell(row, testStateIndex) || undefined : undefined;
+
+    const entryResult = entryTagIndex !== undefined ? normalizeTagResult(getCell(row, entryTagIndex), '进站') : null;
+    const parkingResult = parkingTagIndex !== undefined ? normalizeTagResult(getCell(row, parkingTagIndex), '停泊') : null;
+    const departureResult = departureTagIndex !== undefined ? normalizeTagResult(getCell(row, departureTagIndex), '出站') : null;
+
+    const entryDesc = entryDescIndex !== undefined ? getCell(row, entryDescIndex) : '';
+    const departureDesc = departureDescIndex !== undefined ? getCell(row, departureDescIndex) : '';
+    const entryTag = entryTagIndex !== undefined ? getCell(row, entryTagIndex) : '';
+    const parkingTag = parkingTagIndex !== undefined ? getCell(row, parkingTagIndex) : '';
+    const departureTag = departureTagIndex !== undefined ? getCell(row, departureTagIndex) : '';
 
     const issueDescription = entryDesc || departureDesc || entryTag || parkingTag || departureTag || undefined;
 
@@ -241,7 +273,7 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
 
     if (hasDirectionResult) {
       if (entryResult) {
-        const issueCategory = extractTagCategory(entryTag) || entryDesc || undefined;
+        const issueCategory = entryResult === '失败' ? extractTagCategory(entryTag) || entryDesc || undefined : entryDesc || undefined;
         records.push(
           createRecord(sessionId, stationName, version, '进站', entryResult, issueCategory || '', issueDescription || '', {
             stationConclusion,
@@ -254,7 +286,7 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
       }
 
       if (parkingResult && entryResult !== '失败') {
-        const issueCategory = extractTagCategory(parkingTag) || entryDesc || undefined;
+        const issueCategory = parkingResult === '失败' ? extractTagCategory(parkingTag) || entryDesc || undefined : entryDesc || undefined;
         records.push(
           createRecord(sessionId, stationName, version, '停泊', parkingResult, issueCategory || '', issueDescription || '', {
             stationConclusion,
@@ -267,7 +299,7 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
       }
 
       if (departureResult) {
-        const issueCategory = extractTagCategory(entryTag) || extractTagCategory(parkingTag) || departureDesc || entryDesc || undefined;
+        const issueCategory = departureResult === '失败' ? extractTagCategory(departureTag) || departureDesc || entryDesc || undefined : departureDesc || entryDesc || undefined;
         records.push(
           createRecord(sessionId, stationName, version, '出站', departureResult, issueCategory || '', issueDescription || '', {
             stationConclusion,
@@ -294,6 +326,23 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
   }
 
   return records;
+}
+
+function buildHeaderIndexMap(headers: string[]): Record<string, number> {
+  const map: Record<string, number> = {};
+  for (let i = 0; i < headers.length; i++) {
+    map[headers[i]] = i;
+  }
+  return map;
+}
+
+function normalizeAdVersion(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+
+  // 提取 ZRD.V3.0-Robot-TU.Z30.2026.24.r 这段版本号字段
+  const match = trimmed.match(/ZRD\.V3\.0-Robot-TU\.Z30\.2026\.24\.r/i);
+  return match ? match[0] : trimmed;
 }
 
 function normalizeTagResult(value: string, type: '进站' | '停泊' | '出站'): ResultType | null {
@@ -472,7 +521,7 @@ function normalizeRecords(rows: Record<string, unknown>[]): TestRecord[] {
       testTime: normalized.testTime ? String(normalized.testTime) : undefined,
       stationConclusion: normalizeStationConclusion(String(normalized.stationConclusion || '')),
       vin: normalized.vin ? String(normalized.vin) : undefined,
-      adVersion: normalized.adVersion ? String(normalized.adVersion) : undefined,
+      adVersion: normalized.adVersion ? normalizeAdVersion(String(normalized.adVersion)) : undefined,
       testDate: normalized.testDate ? String(normalized.testDate) : undefined,
       singleResult: normalized.singleResult ? String(normalized.singleResult) : undefined,
     });
