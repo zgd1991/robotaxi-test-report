@@ -96,6 +96,17 @@ export interface StationConclusionItem {
   conclusion: StationConclusion;
 }
 
+export interface StationDetail {
+  stationName: string;
+  reason: string;
+}
+
+export interface StationDetailStats {
+  passed: StationDetail[];
+  failed: StationDetail[];
+  unreasonable: StationDetail[];
+}
+
 export interface ReportData {
   totalTests: number;
   passedTests: number;
@@ -105,6 +116,7 @@ export interface ReportData {
   completedStations: number;
   stationConclusionStats: StationConclusionStats;
   stationConclusions: StationConclusionItem[];
+  stationDetails: StationDetailStats;
   metadata: ReportMetadata;
   entryStats: DirectionStat;
   exitStats: DirectionStat;

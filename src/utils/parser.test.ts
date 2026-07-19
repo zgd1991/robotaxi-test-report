@@ -19,12 +19,20 @@ describe('parseText', () => {
     expect(records[1].testDate).toBe('2026-07-01');
   });
 
-  it('extracts ZRD.V3.0-Robot-TU.Z30.2026.24.r adVersion field', () => {
+  it('extracts 24.r adVersion field from ZRD version string', () => {
     const text = `站点名称,版本,测试类型,测试结果,问题类别,影响方向,VIN,智驾版本,日期,单次测试结果,站点结论
 站点 A,v1.0.0,进站,通过,,,VIN001,智驾(ZRD.V3.0-Robot-TU.Z30.2026.24.r.2026-07-10-xxx),2026-07-01,OK,通过`;
     const records = parseText(text);
     expect(records.length).toBe(1);
-    expect(records[0].adVersion).toBe('ZRD.V3.0-Robot-TU.Z30.2026.24.r');
+    expect(records[0].adVersion).toBe('24.r');
+  });
+
+  it('extracts 28.r adVersion field from ZRD version string', () => {
+    const text = `站点名称,版本,测试类型,测试结果,问题类别,影响方向,VIN,智驾版本,日期,单次测试结果,站点结论
+站点 A,v1.0.0,进站,通过,,,VIN001,智驾(ZRD.V3.0-Robot-TU.Z30.2026.28.r.102310711173205),2026-07-01,OK,通过`;
+    const records = parseText(text);
+    expect(records.length).toBe(1);
+    expect(records[0].adVersion).toBe('28.r');
   });
 
   it('returns empty array for invalid text', () => {

@@ -101,7 +101,7 @@ describe('calculateReport', () => {
     ];
 
     const report = calculateReport(mixedRecords);
-    expect(report.stationConclusionStats.total).toBe(1);
+    expect(report.stationConclusionStats.total).toBe(0); // 4次测试法完成数只含通过/不通过，不含站点不合理
     expect(report.stationConclusionStats.passed).toBe(0);
     expect(report.stationConclusionStats.failed).toBe(0);
     expect(report.stationConclusionStats.unreasonable).toBe(1);

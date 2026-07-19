@@ -273,9 +273,10 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
 
     if (hasDirectionResult) {
       if (entryResult) {
+        const entryIssueDescription = entryDesc || entryTag || undefined;
         const issueCategory = entryResult === '失败' ? extractTagCategory(entryTag) || entryDesc || undefined : entryDesc || undefined;
         records.push(
-          createRecord(sessionId, stationName, version, '进站', entryResult, issueCategory || '', issueDescription || '', {
+          createRecord(sessionId, stationName, version, '进站', entryResult, issueCategory || '', entryIssueDescription || '', {
             stationConclusion,
             vin,
             adVersion,
@@ -286,9 +287,10 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
       }
 
       if (parkingResult && entryResult !== '失败') {
+        const parkingIssueDescription = entryDesc || parkingTag || undefined;
         const issueCategory = parkingResult === '失败' ? extractTagCategory(parkingTag) || entryDesc || undefined : entryDesc || undefined;
         records.push(
-          createRecord(sessionId, stationName, version, '停泊', parkingResult, issueCategory || '', issueDescription || '', {
+          createRecord(sessionId, stationName, version, '停泊', parkingResult, issueCategory || '', parkingIssueDescription || '', {
             stationConclusion,
             vin,
             adVersion,
@@ -299,9 +301,10 @@ export function parseNewExcelFormat(rows: unknown[][]): TestRecord[] {
       }
 
       if (departureResult) {
+        const departureIssueDescription = departureDesc || departureTag || undefined;
         const issueCategory = departureResult === '失败' ? extractTagCategory(departureTag) || departureDesc || entryDesc || undefined : departureDesc || entryDesc || undefined;
         records.push(
-          createRecord(sessionId, stationName, version, '出站', departureResult, issueCategory || '', issueDescription || '', {
+          createRecord(sessionId, stationName, version, '出站', departureResult, issueCategory || '', departureIssueDescription || '', {
             stationConclusion,
             vin,
             adVersion,
@@ -340,9 +343,9 @@ function normalizeAdVersion(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return trimmed;
 
-  // 提取 ZRD.V3.0-Robot-TU.Z30.2026.24.r 这段版本号字段
-  const match = trimmed.match(/ZRD\.V3\.0-Robot-TU\.Z30\.2026\.24\.r/i);
-  return match ? match[0] : trimmed;
+  // 提取 "2026.28.r" 中的 "28.r" 字段，兼容后续 30.r 等
+  const match = trimmed.match(/ZRD\.V3\.0-Robot-TU\.Z30\.2026\.(\d+\.r)/i);
+  return match ? match[1] : trimmed;
 }
 
 function normalizeTagResult(value: string, type: '进站' | '停泊' | '出站'): ResultType | null {

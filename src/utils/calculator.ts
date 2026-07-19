@@ -1,10 +1,11 @@
-import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, StationConclusion, StationConclusionItem, StationConclusionStats, TestRecord, TestType, VersionChange, VersionStat } from '../types';
+import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, StationConclusion, StationConclusionItem, StationConclusionStats, StationDetailStats, TestRecord, TestType, VersionChange, VersionStat } from '../types';
 
 export function calculateReport(records: TestRecord[]): ReportData {
   const sessions = groupBySession(records);
   const singleTestStats = buildSingleTestStats(sessions);
   const stationConclusionStats = buildStationConclusionStats(sessions);
   const stationConclusions = buildStationConclusions(sessions);
+  const stationDetails = buildStationDetails(sessions);
   const metadata = buildMetadata(records, sessions);
 
   const entryStats = buildDirectionStats(records, '进站');
@@ -27,6 +28,7 @@ export function calculateReport(records: TestRecord[]): ReportData {
     completedStations: stationConclusionStats.total,
     stationConclusionStats,
     stationConclusions,
+    stationDetails,
     metadata,
     entryStats,
     exitStats,
@@ -97,11 +99,11 @@ function buildStationConclusionStats(sessions: Map<string, TestRecord[]>): Stati
     else unfinished++;
   }
 
-  const total = passed + failed + unreasonable;
-  const allStations = total + unfinished;
+  const total = passed + failed;
+  const allStations = passed + failed + unreasonable + unfinished;
   const passRate = total > 0 ? parseFloat(((passed / total) * 100).toFixed(1)) : 0;
   const failRate = total > 0 ? parseFloat(((failed / total) * 100).toFixed(1)) : 0;
-  const unreasonableRate = total > 0 ? parseFloat(((unreasonable / total) * 100).toFixed(1)) : 0;
+  const unreasonableRate = allStations > 0 ? parseFloat(((unreasonable / allStations) * 100).toFixed(1)) : 0;
   const unfinishedRate = allStations > 0 ? parseFloat(((unfinished / allStations) * 100).toFixed(1)) : 0;
 
   return { total, passed, failed, unreasonable, unfinished, passRate, failRate, unreasonableRate, unfinishedRate };
@@ -125,6 +127,55 @@ function buildStationConclusions(sessions: Map<string, TestRecord[]>): StationCo
     }
   }
   return results;
+}
+
+function buildStationDetails(sessions: Map<string, TestRecord[]>): StationDetailStats {
+  const stationSessions = new Map<string, TestRecord[][]>();
+
+  for (const sessionRecords of sessions.values()) {
+    const stationName = sessionRecords[0]?.stationName || 'unknown';
+    const existing = stationSessions.get(stationName) || [];
+    existing.push(sessionRecords);
+    stationSessions.set(stationName, existing);
+  }
+
+  const result: StationDetailStats = { passed: [], failed: [], unreasonable: [] };
+
+  for (const [stationName, stationSessionList] of stationSessions.entries()) {
+    const conclusion = determineStationConclusion(stationSessionList);
+    if (!conclusion) continue;
+
+    const reason = getStationReason(stationSessionList, conclusion);
+
+    if (conclusion === '通过') {
+      result.passed.push({ stationName, reason });
+    } else if (conclusion === '不通过') {
+      result.failed.push({ stationName, reason });
+    } else if (conclusion === '站点不合理') {
+      result.unreasonable.push({ stationName, reason });
+    }
+  }
+
+  return result;
+}
+
+function getStationReason(stationSessionList: TestRecord[][], conclusion: StationConclusion): string {
+  if (conclusion === '站点不合理') {
+    for (const sessionRecords of stationSessionList) {
+      if (sessionRecords.some((r) => r.stationConclusion === '站点不合理')) {
+        const reasonRecord = sessionRecords.find((r) => r.issueDescription || r.issueCategory);
+        return reasonRecord?.issueDescription || reasonRecord?.issueCategory || '站点不合理';
+      }
+    }
+  } else if (conclusion === '不通过') {
+    for (const sessionRecords of stationSessionList) {
+      if (!isSingleTestPassed(sessionRecords)) {
+        const reasonRecord = sessionRecords.find((r) => r.result === '失败' && (r.issueDescription || r.issueCategory));
+        return reasonRecord?.issueDescription || reasonRecord?.issueCategory || '不通过';
+      }
+    }
+  }
+  return '';
 }
 
 function determineStationConclusion(stationSessionList: TestRecord[][]): StationConclusion | undefined {
@@ -175,13 +226,25 @@ function buildDirectionStats(records: TestRecord[], direction: TestType): Direct
   return { total, passed, failed, rate };
 }
 
+function getIssueCategory(record: TestRecord): string {
+  // 当问题类别为“其他”时，用对应问题描述替换，避免大量问题被归类为模糊的“其他”
+  if (record.issueCategory === '其他' && record.issueDescription) {
+    return record.issueDescription.trim();
+  }
+  return record.issueCategory || '未分类';
+}
+
+function isValidIssue(record: TestRecord): boolean {
+  return record.result === '失败' && !!record.issueCategory && record.issueCategory !== '站点不合理';
+}
+
 function buildIssueStats(records: TestRecord[]): IssueStat[] {
-  const failedRecords = records.filter((r) => r.result === '失败' && r.issueCategory);
+  const failedRecords = records.filter(isValidIssue);
   const totalIssues = failedRecords.length;
   const counts = new Map<string, number>();
 
   for (const record of failedRecords) {
-    const category = record.issueCategory || '未分类';
+    const category = getIssueCategory(record);
     counts.set(category, (counts.get(category) || 0) + 1);
   }
 
@@ -203,14 +266,14 @@ function buildIssueStatsByType(records: TestRecord[]): Record<'进站' | '停泊
   };
 
   // 使用全局问题总数作为分母计算占比
-  const totalIssues = records.filter((r) => r.result === '失败' && r.issueCategory).length;
+  const totalIssues = records.filter(isValidIssue).length;
 
   for (const type of types) {
-    const failedRecords = records.filter((r) => r.testType === type && r.result === '失败' && r.issueCategory);
+    const failedRecords = records.filter((r) => r.testType === type && isValidIssue(r));
     const counts = new Map<string, number>();
 
     for (const record of failedRecords) {
-      const category = record.issueCategory || '未分类';
+      const category = getIssueCategory(record);
       counts.set(category, (counts.get(category) || 0) + 1);
     }
 

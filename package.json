@@ -1,7 +1,7 @@
 {
   "name": "robotaxi-test-report",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "productName": "Robotaxi站点报告输出_智行版本",
@@ -13,6 +13,7 @@
     "test": "vitest run",
     "electron:dev": "NODE_ENV=development electron electron/main.cjs",
     "electron:build": "npm run build && electron-builder --publish=never",
+    "electron:build:win": "npm run build && electron-builder --win --publish=never",
     "electron:pack": "npm run build && electron-builder --dir --publish=never",
     "dist": "npm run electron:build"
   },
@@ -34,7 +35,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.4.20",
-    "electron": "^33.2.1",
+    "docx": "^9.7.1",
+    "electron": "^33.4.11",
     "electron-builder": "^25.1.7",
     "oxlint": "^1.71.0",
     "postcss": "^8.4.49",
@@ -59,7 +61,6 @@
         {
           "target": "zip",
           "arch": [
-            "x64",
             "arm64"
           ]
         }
@@ -67,16 +68,18 @@
       "category": "public.app-category.utilities"
     },
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         {
-          "target": "portable",
-          "arch": ["x64"]
-        },
-        {
           "target": "zip",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
   }
 }

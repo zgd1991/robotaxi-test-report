@@ -1,230 +1,489 @@
 import ExcelJS from 'exceljs';
 import type { ReportData } from '../types';
+import { analyzeReport } from './analyzeReport';
 
-const YELLOW_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFFFC000' },
-};
+const DARK_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF333333' } };
+const SECTION_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } };
+const SUBTITLE_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+const EVEN_ROW_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+const WHITE_FILL: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
 
-const LIGHT_BLUE_FILL: ExcelJS.Fill = {
-  type: 'pattern',
-  pattern: 'solid',
-  fgColor: { argb: 'FFD6EAF8' },
-};
+const WHITE_FONT: Partial<ExcelJS.Font> = { name: '微软雅黑', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+const SUBTITLE_FONT: Partial<ExcelJS.Font> = { name: '微软雅黑', size: 11, color: { argb: 'FF666666' } };
+const DARK_FONT: Partial<ExcelJS.Font> = { name: '微软雅黑', size: 11, color: { argb: 'FF333333' } };
+const BLUE_FONT: Partial<ExcelJS.Font> = { name: '微软雅黑', size: 11, color: { argb: 'FF0066CC' } };
+const HEADER_FONT: Partial<ExcelJS.Font> = { name: '微软雅黑', size: 12, bold: true, color: { argb: 'FF333333' } };
 
-const CENTER_ALIGNMENT: Partial<ExcelJS.Alignment> = {
-  horizontal: 'center',
-  vertical: 'middle',
-  wrapText: true,
-};
+const CENTER: Partial<ExcelJS.Alignment> = { horizontal: 'center', vertical: 'middle', wrapText: true };
+const LEFT: Partial<ExcelJS.Alignment> = { horizontal: 'left', vertical: 'middle', wrapText: true };
 
-const LEFT_ALIGNMENT: Partial<ExcelJS.Alignment> = {
-  horizontal: 'left',
-  vertical: 'middle',
-  wrapText: true,
-};
-
-const THIN_BORDER: Partial<ExcelJS.Borders> = {
-  top: { style: 'thin', color: { argb: 'FF000000' } },
-  left: { style: 'thin', color: { argb: 'FF000000' } },
-  bottom: { style: 'thin', color: { argb: 'FF000000' } },
-  right: { style: 'thin', color: { argb: 'FF000000' } },
-};
+const NO_BORDER: Partial<ExcelJS.Borders> = {};
 
 export async function generateExcelReport(data: ReportData): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
-  const ws = workbook.addWorksheet('测试报告');
+  const analysis = analyzeReport(data);
 
+  const ws = workbook.addWorksheet('测试报告');
   ws.columns = [
-    { width: 18 },
-    { width: 28 },
-    { width: 14 },
-    { width: 14 },
-    { width: 14 },
-    { width: 14 },
+    { width: 3 },   // A
+    { width: 18 },  // B
+    { width: 14 },  // C
+    { width: 22 },  // D
+    { width: 14 },  // E
+    { width: 14 },  // F
+    { width: 14 },  // G
+    { width: 14 },  // H
   ];
 
-  const completed = data.stationConclusionStats.total;
-  const passedStations = data.stationConclusionStats.passed;
-  const failedStations = data.stationConclusionStats.failed;
-  const passRate = data.stationConclusionStats.passRate;
-  const single = data.singleTestStats;
-  const entry = data.entryStats;
-  const parking = data.parkingStats;
-  const exit = data.exitStats;
-  const { testDate, vin, adVersion } = data.metadata;
+  let currentRow = 2;
 
-  const typeStats = data.issueStatsByType;
+  // ===== Title =====
+  ws.mergeCells(currentRow, 2, currentRow, 7);
+  const titleCell = ws.getCell(currentRow, 2);
+  titleCell.value = 'Robotaxi 站点验收报告';
+  titleCell.font = WHITE_FONT;
+  titleCell.fill = DARK_FILL;
+  titleCell.alignment = CENTER;
+  ws.getRow(currentRow).height = 40;
+  currentRow++;
 
-  // Row 1: 标题
-  ws.mergeCells('A1:F1');
-  const titleCell = ws.getCell('A1');
-  titleCell.value = `Robotaxi站点验收报告——智驾版本：${adVersion || '—'}\r\n${testDate || '—'}/车辆vin：${vin || '—'}`;
-  titleCell.font = { name: '宋体', size: 22, bold: true };
-  titleCell.fill = YELLOW_FILL;
-  titleCell.alignment = CENTER_ALIGNMENT;
-  ws.getRow(1).height = 48;
+  // ===== Subtitle =====
+  ws.mergeCells(currentRow, 2, currentRow, 7);
+  const subtitleCell = ws.getCell(currentRow, 2);
+  subtitleCell.value = `智驾版本：${data.metadata.adVersion || '—'}　｜　验收日期：${data.metadata.testDate || '—'}　｜　车辆 VIN：${data.metadata.vin || '—'}`;
+  subtitleCell.font = SUBTITLE_FONT;
+  subtitleCell.fill = SUBTITLE_FILL;
+  subtitleCell.alignment = CENTER;
+  ws.getRow(currentRow).height = 24;
+  currentRow += 2; // blank row separator
 
-  // Row 2-3: 测试结论内容区域
-  ws.mergeCells('A2:A3');
-  ws.getCell('A2').value = '测试结论';
-  ws.getCell('A2').font = { name: '等线', size: 18, bold: true };
-  ws.getCell('A2').fill = LIGHT_BLUE_FILL;
-  ws.getCell('A2').alignment = CENTER_ALIGNMENT;
-  ws.mergeCells('B2:F3');
-  ws.getRow(2).height = 28;
-  ws.getRow(3).height = 28;
+  // ===== 测试结论 =====
+  const conclusionStart = currentRow;
+  const conclusionEnd = currentRow + 2;
+  ws.mergeCells(conclusionStart, 2, conclusionEnd, 2);
+  ws.getCell(conclusionStart, 2).value = '测试结论';
+  ws.getCell(conclusionStart, 2).font = HEADER_FONT;
+  ws.getCell(conclusionStart, 2).fill = SECTION_FILL;
+  ws.getCell(conclusionStart, 2).alignment = CENTER;
 
-  // Row 4: 测试结果表头
-  ws.mergeCells('A4:A9');
-  ws.getCell('A4').value = '测试结果';
-  ws.getCell('A4').font = { name: '等线', size: 18, bold: true };
-  ws.getCell('A4').fill = LIGHT_BLUE_FILL;
-  ws.getCell('A4').alignment = CENTER_ALIGNMENT;
+  ws.mergeCells(conclusionStart, 3, conclusionEnd, 7);
+  const conclusionText = [
+    analysis.summary,
+    '薄弱环节：' + analysis.weakPoints.join('；'),
+    '主要问题：' + analysis.topIssues.join('；'),
+    analysis.versionSummary ? '版本对比：' + analysis.versionSummary : '',
+    '优化建议：' + analysis.recommendations.join('；'),
+  ]
+    .filter(Boolean)
+    .join('\n');
+  ws.getCell(conclusionStart, 3).value = conclusionText;
+  ws.getCell(conclusionStart, 3).font = DARK_FONT;
+  ws.getCell(conclusionStart, 3).alignment = LEFT;
+  ws.getRow(conclusionStart).height = 40;
+  ws.getRow(conclusionStart + 1).height = 40;
+  ws.getRow(conclusionEnd).height = 40;
+  currentRow = conclusionEnd + 2; // blank row separator
+
+  // ===== 测试结果 =====
+  const resultHeaderRow = currentRow;
+  const resultStartRow = currentRow + 1;
+  const resultEndRow = resultStartRow + 5;
+  ws.mergeCells(resultHeaderRow, 2, resultEndRow, 2);
+  ws.getCell(resultHeaderRow, 2).value = '测试结果';
+  ws.getCell(resultHeaderRow, 2).font = HEADER_FONT;
+  ws.getCell(resultHeaderRow, 2).fill = SECTION_FILL;
+  ws.getCell(resultHeaderRow, 2).alignment = CENTER;
 
   const resultHeaders = ['测试范围', '测试次数', '成功', '失败', '成功率'];
-  for (let i = 0; i < resultHeaders.length; i++) {
-    const cell = ws.getCell(4, i + 2);
-    cell.value = resultHeaders[i];
-    cell.font = { name: '等线', size: 16 };
-    cell.alignment = CENTER_ALIGNMENT;
-    cell.fill = LIGHT_BLUE_FILL;
-  }
-  ws.getRow(4).height = 28;
+  resultHeaders.forEach((h, i) => {
+    const cell = ws.getCell(resultHeaderRow, i + 3);
+    cell.value = h;
+    cell.font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = DARK_FILL;
+    cell.alignment = CENTER;
+  });
+  ws.getRow(resultHeaderRow).height = 28;
 
-  // Rows 5-9: 测试结果数据
   const resultRows = [
-    ['整体通过率(4次测试法)', completed, passedStations, failedStations, `${passRate}%`],
-    ['单次通过率', single.total, single.passed, single.failed, `${single.rate}%`],
-    ['进站成功率', entry.total, entry.passed, entry.failed, `${entry.rate}%`],
-    ['停泊成功率', parking.total, parking.passed, parking.failed, `${parking.rate}%`],
-    ['出站成功率', exit.total, exit.passed, exit.failed, `${exit.rate}%`],
+    ['整体通过率（4次测试法）', data.stationConclusionStats.total, data.stationConclusionStats.passed, data.stationConclusionStats.failed],
+    ['单次通过率', data.singleTestStats.total, data.singleTestStats.passed, data.singleTestStats.failed],
+    ['进站成功率', data.entryStats.total, data.entryStats.passed, data.entryStats.failed],
+    ['停泊成功率', data.parkingStats.total, data.parkingStats.passed, data.parkingStats.failed],
+    ['出站成功率', data.exitStats.total, data.exitStats.passed, data.exitStats.failed],
+    ['站点不合理', data.stationConclusionStats.unreasonable, '-', '-', '-'],
   ];
+  resultRows.forEach((row, i) => {
+    const rowNum = resultStartRow + i;
+    const isEven = i % 2 === 0;
+    const fill = isEven ? WHITE_FILL : EVEN_ROW_FILL;
 
-  for (let i = 0; i < resultRows.length; i++) {
-    const row = resultRows[i];
-    for (let j = 0; j < row.length; j++) {
-      const cell = ws.getCell(5 + i, j + 2);
+    ws.getCell(rowNum, 3).value = row[0];
+    ws.getCell(rowNum, 3).font = BLUE_FONT;
+    ws.getCell(rowNum, 3).alignment = LEFT;
+    ws.getCell(rowNum, 3).fill = fill;
+
+    for (let j = 1; j <= 3; j++) {
+      const cell = ws.getCell(rowNum, j + 3);
       cell.value = row[j];
-      cell.font = { name: '等线', size: 14 };
-      cell.alignment = CENTER_ALIGNMENT;
-    }
-    ws.getRow(5 + i).height = 26;
-  }
-
-  // Row 10: 问题分布表头
-  ws.mergeCells('B10:E10');
-  ws.getCell('A10').value = '问题分布';
-  ws.getCell('A10').font = { name: '等线', size: 18 };
-  ws.getCell('A10').fill = LIGHT_BLUE_FILL;
-  ws.getCell('A10').alignment = CENTER_ALIGNMENT;
-  ws.getCell('B10').value = '问题描述';
-  ws.getCell('B10').font = { name: '等线', size: 16 };
-  ws.getCell('B10').alignment = CENTER_ALIGNMENT;
-  ws.getCell('B10').fill = LIGHT_BLUE_FILL;
-  ws.getCell('F10').value = '次数/占比';
-  ws.getCell('F10').font = { name: '等线', size: 16 };
-  ws.getCell('F10').alignment = CENTER_ALIGNMENT;
-  ws.getCell('F10').fill = LIGHT_BLUE_FILL;
-  ws.getRow(10).height = 28;
-
-  // Rows 11-15: 问题分布数据
-  // 模板结构：进站 2 行（11-12），停泊 2 行（13-14），出站 1 行（15）
-  const issueLayout: { type: '进站' | '停泊' | '出站'; rows: number }[] = [
-    { type: '进站', rows: 2 },
-    { type: '停泊', rows: 2 },
-    { type: '出站', rows: 1 },
-  ];
-
-  let currentRow = 11;
-  for (const section of issueLayout) {
-    const issues = typeStats[section.type] || [];
-    const sectionStartRow = currentRow;
-    const sectionEndRow = currentRow + section.rows - 1;
-
-    ws.mergeCells(sectionStartRow, 1, sectionEndRow, 1);
-    ws.getCell(sectionStartRow, 1).value = section.type;
-    ws.getCell(sectionStartRow, 1).font = { name: '等线', size: 16, bold: true };
-    ws.getCell(sectionStartRow, 1).fill = LIGHT_BLUE_FILL;
-    ws.getCell(sectionStartRow, 1).alignment = CENTER_ALIGNMENT;
-
-    for (let i = 0; i < section.rows; i++) {
-      const row = currentRow + i;
-      ws.mergeCells(row, 2, row, 5);
-      const issue = issues[i];
-      if (issue) {
-        ws.getCell(row, 2).value = issue.category;
-        ws.getCell(row, 6).value = `${issue.count}次/${issue.percentage}%`;
-      } else {
-        ws.getCell(row, 2).value = '';
-        ws.getCell(row, 6).value = '';
-      }
-      ws.getCell(row, 2).alignment = LEFT_ALIGNMENT;
-      ws.getCell(row, 6).alignment = CENTER_ALIGNMENT;
-      ws.getRow(row).height = 24;
+      cell.font = BLUE_FONT;
+      cell.alignment = CENTER;
+      cell.fill = fill;
     }
 
-    currentRow = sectionEndRow + 1;
-  }
-
-  // Row 16: 验收标准
-  ws.mergeCells('A16:F20');
-  const acceptanceText = `验收标准\n1.单个站点验收标准\n  不合理次数       ≥1次       不通过(反馈运营修改站点位置或取消)\n  停车失败次数     ≥2次       不通过(算法优化复测)\n  车成功次数       ≥3次       通  过(具备营运上线条件)`;
-  ws.getCell('A16').value = acceptanceText;
-  ws.getCell('A16').font = { name: '等线', size: 12 };
-  ws.getCell('A16').alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
-  ws.getRow(16).height = 110;
-
-  // Apply borders to used range
-  for (let row = 1; row <= 20; row++) {
-    for (let col = 1; col <= 6; col++) {
-      const cell = ws.getCell(row, col);
-      cell.border = THIN_BORDER;
+    const rateCell = ws.getCell(rowNum, 7);
+    if (row[0] === '站点不合理') {
+      rateCell.value = '-';
+      rateCell.font = { name: '微软雅黑', size: 11, color: { argb: 'FF666666' } };
+      rateCell.alignment = CENTER;
+      rateCell.fill = fill;
+    } else {
+      rateCell.value = { formula: `E${rowNum}/D${rowNum}` };
+      rateCell.numFmt = '0.0%';
+      rateCell.font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FF000000' } };
+      rateCell.alignment = CENTER;
+      rateCell.fill = fill;
     }
-  }
 
-  // Sheet 2: 结论清单
-  const ws2 = workbook.addWorksheet('结论清单');
-  ws2.columns = [
-    { width: 14 },
-    { width: 28 },
-    { width: 14 },
-  ];
+    ws.getRow(rowNum).height = 24;
+  });
+  currentRow = resultEndRow + 2; // blank row separator
 
-  // Row 1: 表头
-  ws2.getCell('A1').value = '站点序号';
-  ws2.getCell('B1').value = '站点名称';
-  ws2.getCell('C1').value = '测试结论';
-  for (let col = 1; col <= 3; col++) {
-    const cell = ws2.getCell(1, col);
-    cell.font = { name: '等线', size: 14, bold: true };
-    cell.alignment = CENTER_ALIGNMENT;
-  }
-  ws2.getRow(1).height = 28;
+  // ===== 问题分布 =====
+  const issueHeaderRow = currentRow;
+  const issueStartRow = currentRow + 1;
+  const directions: ('进站' | '停泊' | '出站')[] = ['进站', '停泊', '出站'];
+  const totalIssueCount = directions.reduce(
+    (sum, dir) => sum + (data.issueStatsByType[dir]?.length || 0),
+    0
+  );
+  const issueTotalRow = issueStartRow + totalIssueCount;
 
-  // Rows 2+: 数据
-  data.stationConclusions.forEach((item, index) => {
-    const row = index + 2;
-    ws2.getCell(row, 1).value = index + 1;
-    ws2.getCell(row, 2).value = item.stationName;
-    ws2.getCell(row, 3).value = item.conclusion;
-    ws2.getCell(row, 1).alignment = CENTER_ALIGNMENT;
-    ws2.getCell(row, 2).alignment = CENTER_ALIGNMENT;
-    ws2.getCell(row, 3).alignment = CENTER_ALIGNMENT;
-    ws2.getRow(row).height = 24;
+  let issueRowNum = issueStartRow;
+  directions.forEach((dir) => {
+    const issues = data.issueStatsByType[dir] || [];
+    issues.forEach((issue, index) => {
+      const isEven = (issueRowNum - issueStartRow) % 2 === 0;
+      const rowFill = isEven ? WHITE_FILL : EVEN_ROW_FILL;
+
+      // Direction label (only first row of each direction), with light background
+      ws.getCell(issueRowNum, 3).value = index === 0 ? dir : '';
+      ws.getCell(issueRowNum, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FF333333' } };
+      ws.getCell(issueRowNum, 3).alignment = CENTER;
+      ws.getCell(issueRowNum, 3).fill = index === 0 ? SECTION_FILL : rowFill;
+
+      // Issue description merged across D-E
+      ws.mergeCells(issueRowNum, 4, issueRowNum, 5);
+      ws.getCell(issueRowNum, 4).value = issue.category;
+      ws.getCell(issueRowNum, 4).font = BLUE_FONT;
+      ws.getCell(issueRowNum, 4).alignment = LEFT;
+      ws.getCell(issueRowNum, 4).fill = rowFill;
+      ws.getCell(issueRowNum, 5).fill = rowFill;
+
+      // Count
+      ws.getCell(issueRowNum, 6).value = issue.count;
+      ws.getCell(issueRowNum, 6).font = BLUE_FONT;
+      ws.getCell(issueRowNum, 6).alignment = CENTER;
+      ws.getCell(issueRowNum, 6).fill = rowFill;
+
+      // Percentage
+      const pctCell = ws.getCell(issueRowNum, 7);
+      pctCell.value = { formula: `F${issueRowNum}/$F$${issueTotalRow}` };
+      pctCell.numFmt = '0.0%';
+      pctCell.font = { name: '微软雅黑', size: 11, color: { argb: 'FF000000' } };
+      pctCell.alignment = CENTER;
+      pctCell.fill = rowFill;
+
+      ws.getRow(issueRowNum).height = 22;
+      issueRowNum++;
+    });
   });
 
-  // Apply borders to 结论清单
-  const lastRow = Math.max(data.stationConclusions.length + 1, 1);
+  const totalFill = (issueTotalRow - issueStartRow) % 2 === 0 ? WHITE_FILL : EVEN_ROW_FILL;
+  ws.getCell(issueTotalRow, 3).value = '';
+  ws.getCell(issueTotalRow, 3).fill = totalFill;
+
+  ws.mergeCells(issueTotalRow, 4, issueTotalRow, 5);
+  ws.getCell(issueTotalRow, 4).value = '合计';
+  ws.getCell(issueTotalRow, 4).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FF333333' } };
+  ws.getCell(issueTotalRow, 4).alignment = CENTER;
+  ws.getCell(issueTotalRow, 4).fill = totalFill;
+  ws.getCell(issueTotalRow, 5).fill = totalFill;
+
+  ws.getCell(issueTotalRow, 6).value = { formula: `SUM(F${issueStartRow}:F${issueTotalRow - 1})` };
+  ws.getCell(issueTotalRow, 6).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FF000000' } };
+  ws.getCell(issueTotalRow, 6).alignment = CENTER;
+  ws.getCell(issueTotalRow, 6).fill = totalFill;
+
+  ws.getCell(issueTotalRow, 7).value = { formula: `F${issueTotalRow}/$F$${issueTotalRow}` };
+  ws.getCell(issueTotalRow, 7).numFmt = '0.0%';
+  ws.getCell(issueTotalRow, 7).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FF000000' } };
+  ws.getCell(issueTotalRow, 7).alignment = CENTER;
+  ws.getCell(issueTotalRow, 7).fill = totalFill;
+
+  ws.getRow(issueTotalRow).height = 22;
+
+  // Section header vertical merge
+  ws.mergeCells(issueHeaderRow, 2, issueTotalRow - 1, 2);
+  ws.getCell(issueHeaderRow, 2).value = '问题分布';
+  ws.getCell(issueHeaderRow, 2).font = HEADER_FONT;
+  ws.getCell(issueHeaderRow, 2).fill = SECTION_FILL;
+  ws.getCell(issueHeaderRow, 2).alignment = CENTER;
+
+  // Issue table headers
+  ws.getCell(issueHeaderRow, 3).value = '分类';
+  ws.getCell(issueHeaderRow, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(issueHeaderRow, 3).fill = DARK_FILL;
+  ws.getCell(issueHeaderRow, 3).alignment = CENTER;
+
+  ws.mergeCells(issueHeaderRow, 4, issueHeaderRow, 5);
+  ws.getCell(issueHeaderRow, 4).value = '问题描述';
+  ws.getCell(issueHeaderRow, 4).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(issueHeaderRow, 4).fill = DARK_FILL;
+  ws.getCell(issueHeaderRow, 4).alignment = CENTER;
+  ws.getCell(issueHeaderRow, 5).fill = DARK_FILL;
+
+  ws.getCell(issueHeaderRow, 6).value = '次数（次）';
+  ws.getCell(issueHeaderRow, 6).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(issueHeaderRow, 6).fill = DARK_FILL;
+  ws.getCell(issueHeaderRow, 6).alignment = CENTER;
+
+  ws.getCell(issueHeaderRow, 7).value = '占比';
+  ws.getCell(issueHeaderRow, 7).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(issueHeaderRow, 7).fill = DARK_FILL;
+  ws.getCell(issueHeaderRow, 7).alignment = CENTER;
+  ws.getRow(issueHeaderRow).height = 28;
+
+  currentRow = issueTotalRow + 2; // blank row separator
+
+  // ===== 验收标准 =====
+  const stdHeaderRow = currentRow;
+  const stdBodyEnd = stdHeaderRow + 4;
+  ws.mergeCells(stdHeaderRow, 2, stdBodyEnd, 2);
+  ws.getCell(stdHeaderRow, 2).value = '验收标准';
+  ws.getCell(stdHeaderRow, 2).font = HEADER_FONT;
+  ws.getCell(stdHeaderRow, 2).fill = SECTION_FILL;
+  ws.getCell(stdHeaderRow, 2).alignment = CENTER;
+
+  const acceptanceText = `单个站点验收标准：
+· 不合理次数 ≥ 1 次 → 不通过（反馈运营修改站点位置或取消）
+· 失败次数 ≥ 2 次 → 不通过
+· 成功次数 ≥ 3 次 → 通过
+· 其他情况 → 未完成（需补充测试）`;
+  ws.mergeCells(stdHeaderRow, 3, stdBodyEnd, 7);
+  ws.getCell(stdHeaderRow, 3).value = acceptanceText;
+  ws.getCell(stdHeaderRow, 3).font = DARK_FONT;
+  ws.getCell(stdHeaderRow, 3).alignment = LEFT;
+  ws.getRow(stdHeaderRow).height = 22;
+  ws.getRow(stdHeaderRow + 1).height = 22;
+  ws.getRow(stdHeaderRow + 2).height = 22;
+  ws.getRow(stdHeaderRow + 3).height = 22;
+  ws.getRow(stdHeaderRow + 4).height = 22;
+
+  const lastRow = stdBodyEnd;
+
+  // Clear borders for all cells
   for (let row = 1; row <= lastRow; row++) {
-    for (let col = 1; col <= 3; col++) {
-      ws2.getCell(row, col).border = THIN_BORDER;
+    for (let col = 1; col <= 8; col++) {
+      ws.getCell(row, col).border = NO_BORDER;
     }
   }
+
+  // ===== Conditional formatting: data bars =====
+  // Success rate bars in 测试结果 (column G)
+  ws.addConditionalFormatting({
+    ref: `G${resultStartRow}:G${resultEndRow}`,
+    rules: [
+      {
+        type: 'dataBar',
+        color: { argb: 'FF5DADE2' },
+        cfvo: [
+          { type: 'num', value: 0 },
+          { type: 'num', value: 1 },
+        ],
+      } as any,
+    ],
+  });
+
+  // Count bars in 问题分布 (column F)
+  ws.addConditionalFormatting({
+    ref: `F${issueStartRow}:F${issueTotalRow - 1}`,
+    rules: [
+      {
+        type: 'dataBar',
+        color: { argb: 'FF5DADE2' },
+        cfvo: [
+          { type: 'min' },
+          { type: 'max' },
+        ],
+      } as any,
+    ],
+  });
+
+  ws.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  };
+
+  // ===== Station Stats Sheet =====
+  buildStationStatsSheet(workbook, data);
 
   const buf = await workbook.xlsx.writeBuffer();
   return buf as ArrayBuffer;
+}
+
+function buildStationStatsSheet(workbook: ExcelJS.Workbook, data: ReportData) {
+  const ws = workbook.addWorksheet('站点统计');
+  ws.columns = [
+    { width: 3 },   // A
+    { width: 18 },  // B
+    { width: 50 },  // C
+    { width: 60 },  // D
+  ];
+
+  let currentRow = 2;
+
+  // Title
+  ws.mergeCells(currentRow, 2, currentRow, 4);
+  const titleCell = ws.getCell(currentRow, 2);
+  titleCell.value = '站点统计';
+  titleCell.font = WHITE_FONT;
+  titleCell.fill = DARK_FILL;
+  titleCell.alignment = CENTER;
+  ws.getRow(currentRow).height = 40;
+  currentRow += 2;
+
+  // ===== 通过站点 =====
+  const passed = data.stationDetails.passed;
+  ws.mergeCells(currentRow, 2, currentRow, 4);
+  ws.getCell(currentRow, 2).value = `通过站点（${passed.length}个）`;
+  ws.getCell(currentRow, 2).font = HEADER_FONT;
+  ws.getCell(currentRow, 2).fill = SECTION_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getRow(currentRow).height = 28;
+  currentRow++;
+
+  ws.getCell(currentRow, 2).value = '序号';
+  ws.getCell(currentRow, 3).value = '站点名称';
+  ws.getCell(currentRow, 2).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 2).fill = DARK_FILL;
+  ws.getCell(currentRow, 3).fill = DARK_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getCell(currentRow, 3).alignment = CENTER;
+  ws.getRow(currentRow).height = 24;
+  currentRow++;
+
+  passed.forEach((item, index) => {
+    const rowNum = currentRow + index;
+    const fill = index % 2 === 0 ? WHITE_FILL : EVEN_ROW_FILL;
+    ws.getCell(rowNum, 2).value = index + 1;
+    ws.getCell(rowNum, 3).value = item.stationName;
+    ws.getCell(rowNum, 2).font = DARK_FONT;
+    ws.getCell(rowNum, 3).font = DARK_FONT;
+    ws.getCell(rowNum, 2).alignment = CENTER;
+    ws.getCell(rowNum, 3).alignment = LEFT;
+    ws.getCell(rowNum, 2).fill = fill;
+    ws.getCell(rowNum, 3).fill = fill;
+    ws.getRow(rowNum).height = 22;
+  });
+  currentRow += passed.length + 1;
+
+  // ===== 不通过站点 =====
+  const failed = data.stationDetails.failed;
+  ws.mergeCells(currentRow, 2, currentRow, 4);
+  ws.getCell(currentRow, 2).value = `不通过站点（${failed.length}个）`;
+  ws.getCell(currentRow, 2).font = HEADER_FONT;
+  ws.getCell(currentRow, 2).fill = SECTION_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getRow(currentRow).height = 28;
+  currentRow++;
+
+  ws.getCell(currentRow, 2).value = '序号';
+  ws.getCell(currentRow, 3).value = '站点名称';
+  ws.getCell(currentRow, 4).value = '失败原因';
+  ws.getCell(currentRow, 2).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 4).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 2).fill = DARK_FILL;
+  ws.getCell(currentRow, 3).fill = DARK_FILL;
+  ws.getCell(currentRow, 4).fill = DARK_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getCell(currentRow, 3).alignment = CENTER;
+  ws.getCell(currentRow, 4).alignment = CENTER;
+  ws.getRow(currentRow).height = 24;
+  currentRow++;
+
+  failed.forEach((item, index) => {
+    const rowNum = currentRow + index;
+    const fill = index % 2 === 0 ? WHITE_FILL : EVEN_ROW_FILL;
+    ws.getCell(rowNum, 2).value = index + 1;
+    ws.getCell(rowNum, 3).value = item.stationName;
+    ws.getCell(rowNum, 4).value = item.reason;
+    ws.getCell(rowNum, 2).font = DARK_FONT;
+    ws.getCell(rowNum, 3).font = DARK_FONT;
+    ws.getCell(rowNum, 4).font = DARK_FONT;
+    ws.getCell(rowNum, 2).alignment = CENTER;
+    ws.getCell(rowNum, 3).alignment = LEFT;
+    ws.getCell(rowNum, 4).alignment = LEFT;
+    ws.getCell(rowNum, 2).fill = fill;
+    ws.getCell(rowNum, 3).fill = fill;
+    ws.getCell(rowNum, 4).fill = fill;
+    ws.getRow(rowNum).height = 22;
+  });
+  currentRow += failed.length + 1;
+
+  // ===== 站点不合理 =====
+  const unreasonable = data.stationDetails.unreasonable;
+  ws.mergeCells(currentRow, 2, currentRow, 4);
+  ws.getCell(currentRow, 2).value = `站点不合理（${unreasonable.length}个）`;
+  ws.getCell(currentRow, 2).font = HEADER_FONT;
+  ws.getCell(currentRow, 2).fill = SECTION_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getRow(currentRow).height = 28;
+  currentRow++;
+
+  ws.getCell(currentRow, 2).value = '序号';
+  ws.getCell(currentRow, 3).value = '站点名称';
+  ws.getCell(currentRow, 4).value = '不合理原因';
+  ws.getCell(currentRow, 2).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 4).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 2).fill = DARK_FILL;
+  ws.getCell(currentRow, 3).fill = DARK_FILL;
+  ws.getCell(currentRow, 4).fill = DARK_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getCell(currentRow, 3).alignment = CENTER;
+  ws.getCell(currentRow, 4).alignment = CENTER;
+  ws.getRow(currentRow).height = 24;
+  currentRow++;
+
+  unreasonable.forEach((item, index) => {
+    const rowNum = currentRow + index;
+    const fill = index % 2 === 0 ? WHITE_FILL : EVEN_ROW_FILL;
+    ws.getCell(rowNum, 2).value = index + 1;
+    ws.getCell(rowNum, 3).value = item.stationName;
+    ws.getCell(rowNum, 4).value = item.reason;
+    ws.getCell(rowNum, 2).font = DARK_FONT;
+    ws.getCell(rowNum, 3).font = DARK_FONT;
+    ws.getCell(rowNum, 4).font = DARK_FONT;
+    ws.getCell(rowNum, 2).alignment = CENTER;
+    ws.getCell(rowNum, 3).alignment = LEFT;
+    ws.getCell(rowNum, 4).alignment = LEFT;
+    ws.getCell(rowNum, 2).fill = fill;
+    ws.getCell(rowNum, 3).fill = fill;
+    ws.getCell(rowNum, 4).fill = fill;
+    ws.getRow(rowNum).height = 22;
+  });
+
+  // Clear borders
+  const lastRow = currentRow + unreasonable.length - 1;
+  for (let row = 1; row <= lastRow; row++) {
+    for (let col = 1; col <= 4; col++) {
+      ws.getCell(row, col).border = NO_BORDER;
+    }
+  }
 }
 
 export function downloadExcel(content: ArrayBuffer, filename: string): void {
