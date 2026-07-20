@@ -18,6 +18,7 @@
     "dist": "npm run electron:build"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.468.0",
     "papaparse": "^5.4.1",
@@ -26,7 +27,8 @@
     "react-router-dom": "^7.0.2",
     "recharts": "^2.15.0",
     "xlsx": "^0.18.5",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
@@ -50,6 +52,12 @@
     "productName": "Robotaxi站点报告输出_智行版本",
     "directories": {
       "output": "dist-electron"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "zgd1991",
+      "repo": "robotaxi-test-report",
+      "releaseType": "release"
     },
     "files": [
       "dist/**/*",
