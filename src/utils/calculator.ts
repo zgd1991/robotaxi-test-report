@@ -162,11 +162,10 @@ function buildStationDetails(sessions: Map<string, TestRecord[]>): StationDetail
     stationSessions.set(stationName, existing);
   }
 
-  const result: StationDetailStats = { passed: [], failed: [], unreasonable: [] };
+  const result: StationDetailStats = { passed: [], failed: [], unreasonable: [], unfinished: [] };
 
   for (const [stationName, stationSessionList] of stationSessions.entries()) {
     const conclusion = determineStationConclusion(stationSessionList);
-    if (!conclusion) continue;
 
     const reason = getStationReason(stationSessionList, conclusion);
 
@@ -176,13 +175,15 @@ function buildStationDetails(sessions: Map<string, TestRecord[]>): StationDetail
       result.failed.push({ stationName, reason });
     } else if (conclusion === '站点不合理') {
       result.unreasonable.push({ stationName, reason });
+    } else {
+      result.unfinished.push({ stationName, reason: '未完成4次测试法' });
     }
   }
 
   return result;
 }
 
-function getStationReason(stationSessionList: TestRecord[][], conclusion: StationConclusion): string {
+function getStationReason(stationSessionList: TestRecord[][], conclusion: StationConclusion | undefined): string {
   if (conclusion === '站点不合理') {
     for (const sessionRecords of stationSessionList) {
       if (sessionRecords.some((r) => r.stationConclusion === '站点不合理')) {

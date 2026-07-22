@@ -476,9 +476,54 @@ function buildStationStatsSheet(workbook: ExcelJS.Workbook, data: ReportData) {
     ws.getCell(rowNum, 4).fill = fill;
     ws.getRow(rowNum).height = 22;
   });
+  currentRow += unreasonable.length + 1;
+
+  // ===== 未完成4次测试法站点 =====
+  const unfinished = data.stationDetails.unfinished;
+  ws.mergeCells(currentRow, 2, currentRow, 4);
+  ws.getCell(currentRow, 2).value = `未完成4次测试法站点（${unfinished.length}个）`;
+  ws.getCell(currentRow, 2).font = HEADER_FONT;
+  ws.getCell(currentRow, 2).fill = SECTION_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getRow(currentRow).height = 28;
+  currentRow++;
+
+  ws.getCell(currentRow, 2).value = '序号';
+  ws.getCell(currentRow, 3).value = '站点名称';
+  ws.getCell(currentRow, 4).value = '说明';
+  ws.getCell(currentRow, 2).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 3).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 4).font = { name: '微软雅黑', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+  ws.getCell(currentRow, 2).fill = DARK_FILL;
+  ws.getCell(currentRow, 3).fill = DARK_FILL;
+  ws.getCell(currentRow, 4).fill = DARK_FILL;
+  ws.getCell(currentRow, 2).alignment = CENTER;
+  ws.getCell(currentRow, 3).alignment = CENTER;
+  ws.getCell(currentRow, 4).alignment = CENTER;
+  ws.getRow(currentRow).height = 24;
+  currentRow++;
+
+  unfinished.forEach((item, index) => {
+    const rowNum = currentRow + index;
+    const fill = index % 2 === 0 ? WHITE_FILL : EVEN_ROW_FILL;
+    ws.getCell(rowNum, 2).value = index + 1;
+    ws.getCell(rowNum, 3).value = item.stationName;
+    ws.getCell(rowNum, 4).value = item.reason;
+    ws.getCell(rowNum, 2).font = DARK_FONT;
+    ws.getCell(rowNum, 3).font = DARK_FONT;
+    ws.getCell(rowNum, 4).font = DARK_FONT;
+    ws.getCell(rowNum, 2).alignment = CENTER;
+    ws.getCell(rowNum, 3).alignment = LEFT;
+    ws.getCell(rowNum, 4).alignment = LEFT;
+    ws.getCell(rowNum, 2).fill = fill;
+    ws.getCell(rowNum, 3).fill = fill;
+    ws.getCell(rowNum, 4).fill = fill;
+    ws.getRow(rowNum).height = 22;
+  });
+  currentRow += unfinished.length;
 
   // Clear borders
-  const lastRow = currentRow + unreasonable.length - 1;
+  const lastRow = currentRow;
   for (let row = 1; row <= lastRow; row++) {
     for (let col = 1; col <= 4; col++) {
       ws.getCell(row, col).border = NO_BORDER;

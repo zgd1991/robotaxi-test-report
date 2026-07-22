@@ -105,6 +105,7 @@ export interface StationDetailStats {
   passed: StationDetail[];
   failed: StationDetail[];
   unreasonable: StationDetail[];
+  unfinished: StationDetail[];
 }
 
 export interface ReportData {
