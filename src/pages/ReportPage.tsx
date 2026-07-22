@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Car, Gauge, MapPin, Hash } from 'lucide-react';
+import { ArrowLeft, Calendar, Car, Gauge, MapPin, Hash, BookOpen, X } from 'lucide-react';
 import { useReportStore } from '../store/useReportStore';
 import { IssueTable } from '../components/IssueTable';
 import { VersionComparison } from '../components/VersionComparison';
@@ -10,6 +10,7 @@ import { AnalysisConclusion } from '../components/AnalysisConclusion';
 export function ReportPage() {
   const navigate = useNavigate();
   const { report, reset } = useReportStore();
+  const [showRules, setShowRules] = useState(false);
 
   useEffect(() => {
     if (!report) {
@@ -34,8 +35,20 @@ export function ReportPage() {
             <ArrowLeft size={14} />
             返回上传
           </button>
-          <ReportExporter data={report} />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowRules(true)}
+              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            >
+              <BookOpen size={14} />
+              计算规则
+            </button>
+            <ReportExporter data={report} />
+          </div>
         </div>
+
+        {showRules && <RulesModal onClose={() => setShowRules(false)} />}
 
         <div className="mb-5">
           <h2 className="text-xl font-semibold tracking-tight text-slate-900">测试报告</h2>
@@ -185,6 +198,76 @@ function CapabilityCard({ title, stats }: { title: string; stats: { total: numbe
         <div className="rounded-md bg-slate-100 p-1.5">
           <div className="text-xs text-rose-700">失败</div>
           <div className="font-mono-data text-sm font-semibold text-rose-700">{stats.failed}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RulesModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100 px-6 py-4">
+          <h3 className="text-base font-semibold text-slate-900">计算规则说明</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-6 text-sm text-slate-700">
+          <div className="space-y-4">
+            <section>
+              <h4 className="mb-2 font-semibold text-slate-900">1. 单次测试通过判定</h4>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>优先读取 singleResult 字段：OK / 通过 / Pass / 成功 → 通过</li>
+                <li>singleResult 为空时：进站通过 且 停泊通过 → 通过，否则 → 失败</li>
+              </ul>
+            </section>
+
+            <section>
+              <h4 className="mb-2 font-semibold text-slate-900">2. 站点结论判定（4次测试法）</h4>
+              <p className="mb-1">按站点聚合所有会话，优先级如下：</p>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>任意会话被标记为「站点不合理」→ 站点不合理（优先级最高）</li>
+                <li>通过会话数 ≥ 3 → 通过</li>
+                <li>失败会话数 ≥ 2 → 不通过</li>
+                <li>以上都不满足 → 未完成4次测试法</li>
+              </ul>
+            </section>
+
+            <section>
+              <h4 className="mb-2 font-semibold text-slate-900">3. 站点整体通过率</h4>
+              <p className="font-mono text-xs text-slate-600">整体通过率 = 通过站点数 / (通过站点数 + 不通过站点数) × 100%</p>
+              <p className="mt-1">站点不合理和未完成4次测试法的站点不计入分母。</p>
+            </section>
+
+            <section>
+              <h4 className="mb-2 font-semibold text-slate-900">4. 问题统计规则</h4>
+              <ul className="list-disc space-y-1 pl-5">
+                <li>只统计 result = 失败 且 issueCategory 不为空的记录</li>
+                <li>「站点不合理」不纳入问题统计</li>
+                <li>进站/停泊/出站标签中，类别为「其他」时，用对应问题描述作为类别</li>
+              </ul>
+            </section>
+
+            <section>
+              <h4 className="mb-2 font-semibold text-slate-900">5. 数据校验</h4>
+              <p>单个站点测试次数超过 4 次时，会报错并提示具体站点，需要整理数据后重新生成报告。</p>
+            </section>
+          </div>
+        </div>
+        <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            我知道了
+          </button>
         </div>
       </div>
     </div>
