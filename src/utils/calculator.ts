@@ -2,6 +2,7 @@ import type { ChangeItem, DirectionStat, IssueStat, ReportData, ReportMetadata, 
 
 export function calculateReport(records: TestRecord[]): ReportData {
   const sessions = groupBySession(records);
+  validateStationSessionCounts(sessions);
   const singleTestStats = buildSingleTestStats(sessions);
   const stationConclusionStats = buildStationConclusionStats(sessions);
   const stationConclusions = buildStationConclusions(sessions);
@@ -49,6 +50,28 @@ function groupBySession(records: TestRecord[]): Map<string, TestRecord[]> {
     sessions.set(record.sessionId, existing);
   }
   return sessions;
+}
+
+function validateStationSessionCounts(sessions: Map<string, TestRecord[]>) {
+  const stationSessions = new Map<string, TestRecord[][]>();
+
+  for (const sessionRecords of sessions.values()) {
+    const stationName = sessionRecords[0]?.stationName || 'unknown';
+    const existing = stationSessions.get(stationName) || [];
+    existing.push(sessionRecords);
+    stationSessions.set(stationName, existing);
+  }
+
+  const overTestedStations: string[] = [];
+  for (const [stationName, stationSessionList] of stationSessions.entries()) {
+    if (stationSessionList.length > 4) {
+      overTestedStations.push(`${stationName}（${stationSessionList.length}次）`);
+    }
+  }
+
+  if (overTestedStations.length > 0) {
+    throw new Error(`以下站点测试次数超过4次，请整理数据后重新生成报告：\n${overTestedStations.join('\n')}`);
+  }
 }
 
 function buildSingleTestStats(sessions: Map<string, TestRecord[]>): DirectionStat {
@@ -179,9 +202,15 @@ function getStationReason(stationSessionList: TestRecord[][], conclusion: Statio
 }
 
 function determineStationConclusion(stationSessionList: TestRecord[][]): StationConclusion | undefined {
+  // 站点不合理优先级最高：只要任意一次会话被标记为站点不合理，整个站点即为站点不合理
+  for (const sessionRecords of stationSessionList) {
+    if (sessionRecords.some((r) => r.stationConclusion === '站点不合理')) {
+      return '站点不合理';
+    }
+  }
+
   let passCount = 0;
   let failCount = 0;
-  let hasUnreasonable = false;
 
   for (const sessionRecords of stationSessionList) {
     if (isSingleTestPassed(sessionRecords)) {
@@ -189,14 +218,10 @@ function determineStationConclusion(stationSessionList: TestRecord[][]): Station
     } else {
       failCount++;
     }
-    if (sessionRecords.some((r) => r.stationConclusion === '站点不合理')) {
-      hasUnreasonable = true;
-    }
   }
 
   if (passCount >= 3) return '通过';
   if (failCount >= 2) return '不通过';
-  if (hasUnreasonable) return '站点不合理';
   return undefined;
 }
 
