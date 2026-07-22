@@ -1,7 +1,7 @@
 {
   "name": "robotaxi-test-report",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "main": "electron/main.cjs",
   "productName": "Robotaxi站点报告输出_智行版本",
