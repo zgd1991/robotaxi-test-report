@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Car, Gauge, MapPin, Hash, BookOpen, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Car, Gauge, MapPin, Hash, BookOpen, X, RefreshCw } from 'lucide-react';
 import { useReportStore } from '../store/useReportStore';
 import { IssueTable } from '../components/IssueTable';
 import { VersionComparison } from '../components/VersionComparison';
@@ -11,12 +11,48 @@ export function ReportPage() {
   const navigate = useNavigate();
   const { report, reset } = useReportStore();
   const [showRules, setShowRules] = useState(false);
+  const [version, setVersion] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('');
 
   useEffect(() => {
     if (!report) {
       navigate('/');
     }
   }, [report, navigate]);
+
+  useEffect(() => {
+    if (!window.electron) return;
+
+    window.electron.getAppVersion().then((v) => setVersion(v));
+
+    const handleAvailable = () => setUpdateStatus('发现新版本，正在下载...');
+    const handleNotAvailable = () => setUpdateStatus('当前已是最新版本');
+    const handleDownloaded = () => setUpdateStatus('新版本已下载，请重启安装');
+    const handleError = (_event: Event, message: string) => setUpdateStatus('检查失败：' + message);
+
+    window.electron.onUpdateAvailable(handleAvailable);
+    window.electron.onUpdateNotAvailable(handleNotAvailable);
+    window.electron.onUpdateDownloaded(handleDownloaded);
+    window.electron.onUpdateError(handleError);
+
+    return () => {
+      window.electron?.removeAllListeners('update-available');
+      window.electron?.removeAllListeners('update-not-available');
+      window.electron?.removeAllListeners('update-downloaded');
+      window.electron?.removeAllListeners('update-error');
+    };
+  }, []);
+
+  const handleCheckUpdate = () => {
+    if (!window.electron) {
+      setUpdateStatus('开发模式下不支持检查更新');
+      return;
+    }
+    setUpdateStatus('检查中...');
+    window.electron.checkForUpdates().catch((err) => {
+      setUpdateStatus('检查失败：' + (err instanceof Error ? err.message : String(err)));
+    });
+  };
 
   if (!report) return null;
 
@@ -35,16 +71,32 @@ export function ReportPage() {
             <ArrowLeft size={14} />
             返回上传
           </button>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowRules(true)}
-              className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
-            >
-              <BookOpen size={14} />
-              计算规则
-            </button>
-            <ReportExporter data={report} />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              {version && (
+                <span className="text-xs text-slate-500">v{version}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowRules(true)}
+                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              >
+                <BookOpen size={14} />
+                计算规则
+              </button>
+              <button
+                type="button"
+                onClick={handleCheckUpdate}
+                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-700 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
+              >
+                <RefreshCw size={14} />
+                检查更新
+              </button>
+              <ReportExporter data={report} />
+            </div>
+            {updateStatus && (
+              <span className="text-xs text-slate-500">{updateStatus}</span>
+            )}
           </div>
         </div>
 

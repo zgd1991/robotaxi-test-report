@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require('electron')
+const { app, BrowserWindow, dialog, ipcMain } = require('electron')
 const path = require('path')
 const { autoUpdater } = require('electron-updater')
 
@@ -13,6 +13,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
     title: 'Robotaxi站点测试报告工具',
     show: false,
@@ -45,6 +46,11 @@ function setupAutoUpdater() {
       message: '检测到新版本，正在后台下载，请稍候...',
       buttons: ['好的'],
     })
+    notifyAllWindows('update-available')
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    notifyAllWindows('update-not-available')
   })
 
   autoUpdater.on('update-downloaded', () => {
@@ -58,10 +64,12 @@ function setupAutoUpdater() {
         autoUpdater.quitAndInstall(true, true)
       }
     })
+    notifyAllWindows('update-downloaded')
   })
 
   autoUpdater.on('error', (err) => {
     console.error('自动更新出错:', err)
+    notifyAllWindows('update-error', err.message)
   })
 
   setTimeout(() => {
@@ -70,6 +78,23 @@ function setupAutoUpdater() {
     })
   }, 3000)
 }
+
+function notifyAllWindows(channel, ...args) {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send(channel, ...args)
+  })
+}
+
+ipcMain.handle('app-version', () => app.getVersion())
+
+ipcMain.handle('check-for-updates', async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    return { success: true, updateInfo: result?.updateInfo || null }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
 
 app.whenReady().then(() => {
   createWindow()
